@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "description": "Free music with friends.",
-  "license": "SEE LICENSE IN LICENSE",
+  "license": "AGPL-3.0-only",
   "engines": {
     "node": ">=22.12"
   },

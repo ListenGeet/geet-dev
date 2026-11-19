@@ -2,7 +2,7 @@
 
 Free music with friends. Hosted at listengeet.com. Friends listen to the same song at the same moment.
 
-The brand name, wordmark and logos are not covered by the code licence (see `LICENSE`).
+The code is licensed under AGPL-3.0-only (see `LICENSE`). The Geet name, wordmark and logos are not covered by that licence (see `TRADEMARKS.md`).
 
 ## Status
 

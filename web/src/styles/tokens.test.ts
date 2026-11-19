@@ -17,3 +17,13 @@ describe('design tokens', () => {
     expect(all).not.toMatch(/gradient|blur\(|backdrop-filter|#1ed760/);
   });
 });
+
+describe('illustrations', () => {
+  it.each(['offline', 'error', 'no-downloads', 'no-results'])(
+    '%s.svg has no glow or gradient',
+    (name) => {
+      const svg = readFileSync(resolve(process.cwd(), `public/illustrations/${name}.svg`), 'utf8');
+      expect(svg).not.toMatch(/Gradient|glow/i);
+    },
+  );
+});

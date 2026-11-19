@@ -2,10 +2,6 @@
   <title id="title">No connection</title>
 
   <defs>
-    <radialGradient id="glow" cx=".5" cy=".42" r=".55">
-      <stop offset="0" stop-color="#FFDC00" stop-opacity=".16"/>
-      <stop offset="1" stop-color="#FFDC00" stop-opacity="0"/>
-    </radialGradient>
 
     <!-- Cuts a clean gap around the slash so it reads over the cloud -->
     <mask id="slash-gap" maskUnits="userSpaceOnUse" x="0" y="0" width="480" height="320">
@@ -13,9 +9,6 @@
       <path d="M150 232L330 92" stroke="#000" stroke-width="20" stroke-linecap="round"/>
     </mask>
   </defs>
-
-  <!-- Background glow -->
-  <ellipse cx="240" cy="150" rx="200" ry="130" fill="url(#glow)"/>
 
   <g mask="url(#slash-gap)">
     <!-- Cloud -->

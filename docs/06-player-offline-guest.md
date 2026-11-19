@@ -60,7 +60,7 @@ Sheet (phone), right panel tab (desktop).
 |---|---|
 | Audio cache | `geet-audio-v1`; key `/offline-audio/{trackId}` stores the full m4a. The worker serves it with HTTP Range support, MIME `audio/mp4` |
 | Cover cache | `geet-covers-v1`; key `/api/cover/{trackId}` |
-| App shell | `geet-shell-v3`; pages `geet-pages-v2`; lyrics `geet-data-v1` |
+| App shell | `geet-shell-v4`; pages `geet-pages-v2`; lyrics `geet-data-v1` |
 | Metadata for the offline page | `localStorage.lg_offline` = JSON `{ "<trackId>": { "title": "...", "artist": "..." } }`, read by `offline.html` |
 | Offline playback URL | `<audio src="/offline-audio/{trackId}">` when the id is saved and the device is offline (or always, when saved, to save data) |
 

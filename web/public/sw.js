@@ -2,14 +2,14 @@
    Goal: the app looks and works the same offline as online, using whatever was cached while online. */
 const AUDIO = 'geet-audio-v1';       // saved songs (also written by src/lib/offline.ts)
 const COVERS = 'geet-covers-v1';     // artwork of saved songs (also written by src/lib/offline.ts)
-const SHELL = 'geet-shell-v3';       // static assets
+const SHELL = 'geet-shell-v4';       // static assets
 const PAGES = 'geet-pages-v2';       // HTML of pages the person has visited
 const DATA = 'geet-data-v1';         // small API responses that are safe to reuse offline (lyrics)
 const KEEP = [AUDIO, COVERS, SHELL, PAGES, DATA];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(SHELL).then((c) => c.addAll([
-    '/offline.html', '/icons/icon-192.png', '/icons/icon-512.png', '/icons/icon-maskable-512.png',
+    '/offline.html', '/brand/geet-wordmark-white.png', '/brand/geet-wordmark-white-bars.png', '/icons/icon-192.png', '/icons/icon-512.png', '/icons/icon-maskable-512.png',
     '/icons/shortcut-search-96.png', '/icons/shortcut-library-96.png', '/icons/shortcut-offline-96.png',
     '/illustrations/offline.svg', '/illustrations/cover-fallback.svg', '/illustrations/no-downloads.svg',
     '/illustrations/no-results.svg', '/illustrations/error.svg',
@@ -60,15 +60,14 @@ self.addEventListener('fetch', (e) => {
 
   if (url.pathname.startsWith('/offline-audio/')) { e.respondWith(serveOfflineAudio(req, url.pathname.split('/').pop())); return; }
 
-  // Pages: same HTML offline as online. Falls back to the home page shell, then to the plain offline notice.
+  // Pages: same HTML offline as online for pages already visited; anything else gets the plain offline notice.
   const wantsHtml = req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html');
   if (wantsHtml && !req.headers.get('rsc')) {
     e.respondWith((async () => {
       try { return await networkFirst(req, PAGES, 4000, url.pathname); }
       catch {
         const cache = await caches.open(PAGES);
-        // Dynamic pages (e.g. /artist/x, /playlists/y) share one app shell, so any cached page can boot them.
-        return (await cache.match(url.pathname, { ignoreVary: true })) || (await cache.match('/', { ignoreVary: true })) || (await caches.match('/offline.html'));
+        return (await cache.match(url.pathname, { ignoreVary: true })) || (await caches.match('/offline.html'));
       }
     })());
     return;
@@ -91,7 +90,7 @@ self.addEventListener('fetch', (e) => {
   }
 
   // Next.js static files, fonts and icons never change for a given URL: cache first.
-  if (url.pathname.startsWith('/_next/static/') || url.pathname.startsWith('/icons/') || url.pathname.startsWith('/illustrations/')) {
+  if (url.pathname.startsWith('/_next/static/') || url.pathname.startsWith('/brand/') || url.pathname.startsWith('/icons/') || url.pathname.startsWith('/illustrations/')) {
     e.respondWith(caches.open(SHELL).then(async (c) => {
       const hit = await c.match(req);
       if (hit) return hit;
