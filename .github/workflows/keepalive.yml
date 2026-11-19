@@ -1,0 +1,36 @@
+name: keepalive
+
+# Daily ping so the free Supabase projects never pause (they pause after 1 week of inactivity).
+# Vercel cron does the same; this is the second line. Covers both production and dev.
+# Secrets per GitHub Environment (production, dev): APP_URL (the API base, e.g. https://api.listengeet.com), CRON_SECRET.
+# Repo variable RUN_SCHEDULED=true must exist in the real repo only, so forks do nothing.
+on:
+  schedule:
+    - cron: '23 4 * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    if: ${{ vars.RUN_SCHEDULED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [production, dev]
+    environment: ${{ matrix.env }}
+    steps:
+      - name: Keep-alive endpoint
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          test -n "$APP_URL" && test -n "$CRON_SECRET" || { echo "APP_URL and CRON_SECRET secrets are required"; exit 1; }
+          curl --fail --silent --show-error --retry 3 --retry-delay 10 --max-time 90 \
+            -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/keepalive"
+      - name: Health check
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+        run: curl --fail --silent --show-error --retry 3 --retry-delay 10 --max-time 20 "$APP_URL/api/health"

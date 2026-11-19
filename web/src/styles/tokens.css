@@ -1,0 +1,47 @@
+/* Design tokens from docs/01. Dark only. Yellow is the only accent. */
+:root {
+  --bg: #000000;
+  --surface: #181818;
+  --raised: #242424;
+  --line: #2a2a2a;
+  --line-strong: #3a3a3a;
+  --text: #ffffff;
+  --text-2: #b3b3b3;
+  --text-3: #6b6b6b;
+  --accent: #ffdc00;
+  --accent-press: #e6c600;
+  --accent-soft: #ffe94d;
+  --accent-tint: rgba(255, 220, 0, 0.14);
+  --on-accent: #000000;
+  --midnight: #0b1226;
+  --plum: #3b2f4a;
+  --plum-deep: #150f1d;
+  --danger: #ff8a5c;
+
+  --radius-pill: 999px;
+  --radius-cover: 6px;
+  --radius-input: 10px;
+  --radius-sheet: 20px;
+  --radius-menu: 10px;
+
+  --gutter: 16px;
+  --shadow-popover: 0 8px 24px rgba(0, 0, 0, 0.6);
+
+  --ease-state: 120ms ease-out;
+  --ease-press: 90ms ease-out;
+  --ease-sheet: 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  --font-display: var(--font-outfit), system-ui, sans-serif;
+  --font-body: var(--font-inter), system-ui, sans-serif;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --gutter: 24px;
+  }
+}
+@media (min-width: 1024px) {
+  :root {
+    --gutter: 32px;
+  }
+}

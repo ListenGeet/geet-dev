@@ -1,0 +1,82 @@
+name: CI
+
+# Public repo: read-only token, no real secrets (dummy build env below). Fork PRs get no secrets by design.
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - name: Worker syntax check
+        run: node --check worker/transcode.mjs
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm test
+      - run: npm run test:sql
+      - name: Build (dummy env)
+        run: npm run build
+        env:
+          REQUIRE_ENV: '1'
+          NEXT_PUBLIC_APP_URL: https://ci.example.com
+          NEXT_PUBLIC_API_URL: https://api.ci.example.com
+          CORS_ORIGINS: https://ci.example.com
+          WORKER_SECRET: ci-worker-secret-0123456789
+          UPLOAD_MODE: admin
+          RESEND_API_KEY: re_ci_dummy_key
+          RESEND_WEBHOOK_SECRET: whsec_ci_dummy_0123456789
+          CLERK_WEBHOOK_SECRET: whsec_ci_dummy_0123456789
+          UNSUBSCRIBE_SECRET: ci-unsubscribe-secret-0123456789
+          EMAIL_FROM_SECURITY: Geet Security <security@ci.example.com>
+          EMAIL_FROM_HELLO: Geet <hello@ci.example.com>
+          EMAIL_FROM_MARKETING: Geet News <marketing@ci.example.com>
+          EMAIL_FROM_COPYRIGHT: Geet Copyright <copyright@ci.example.com>
+          EMAIL_FROM_ALERTS: Geet Alerts <alerts@ci.example.com>
+          EMAIL_REPLY_TO_SUPPORT: support@ci.example.com
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_Y2xlcmsuZXhhbXBsZS5jb20k
+          CLERK_SECRET_KEY: sk_test_ci_dummy
+          NEXT_PUBLIC_SUPABASE_URL: https://ci.supabase.example.com
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
+          SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key
+          CRON_SECRET: ci-cron-secret-0123456789
+          ADMIN_EMAILS: ci@example.com
+          STORAGE_PROVIDER: supabase
+          STORAGE_BUCKET: audio
+          AI_API_KEY: ci-ai-key
+          AI_BASE_URL: https://ai.example.com/v1
+          AI_MODEL: ci-model
+      - name: Dependency audit (report only)
+        run: npm audit --omit=dev --audit-level=high
+        continue-on-error: true
