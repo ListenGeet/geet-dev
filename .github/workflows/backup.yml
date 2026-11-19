@@ -42,7 +42,7 @@ jobs:
           printf '%s' "$BACKUP_PASSPHRASE" | gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 \
             --symmetric --cipher-algo AES256 -o geet-backup.tgz.gpg geet-backup.tgz
           rm -rf backups geet-backup.tgz
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: geet-backup-${{ github.run_id }}
           path: geet-backup.tgz.gpg
