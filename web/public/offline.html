@@ -1,0 +1,25 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Offline · Geet</title><meta name="theme-color" content="#000000">
+<style>
+ body{margin:0;background:#000000;color:#FFFFFF;font-family:system-ui,sans-serif;padding:24px;max-width:640px;margin-inline:auto}
+ .art{display:block;width:min(100%,360px);height:auto;margin:8px auto 16px}
+ h1{font-size:1.6rem;margin:.2em 0}p{color:#B3B3B3}
+ li{list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px;background:#181818;border:1px solid #2A2A2A;border-radius:14px;padding:12px 14px;margin:8px 0}
+ button{background:#FFDC00;color:#000000;border:0;border-radius:999px;padding:8px 16px;font-weight:600;cursor:pointer}
+ ul{padding:0}small{color:#B3B3B3;display:block}audio{width:100%;margin-top:16px}
+</style></head><body>
+<img class="art" src="/illustrations/offline.svg" alt="">
+<h1>You're offline</h1>
+<p>These songs are saved on this device. Chat and jams need a connection.</p>
+<ul id="list"></ul><audio id="a" controls></audio>
+<p><button onclick="location.reload()">Try again</button></p>
+<script>
+ try{
+  var saved=JSON.parse(localStorage.getItem('lg_offline')||'{}'),ids=Object.keys(saved),ul=document.getElementById('list'),a=document.getElementById('a');
+  if(!ids.length){ul.innerHTML='<li>No songs saved for offline listening yet.</li>';a.style.display='none'}
+  ids.forEach(function(id){var s=saved[id],li=document.createElement('li');
+   li.innerHTML='<div><b></b><small></small></div><button>Play</button>';
+   li.querySelector('b').textContent=s.title;li.querySelector('small').textContent=s.artist;
+   li.querySelector('button').onclick=function(){a.src='/offline-audio/'+id;a.play()};ul.appendChild(li)});
+ }catch(e){}
+</script></body></html>

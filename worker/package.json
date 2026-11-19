@@ -1,0 +1,10 @@
+{
+  "name": "@geet/worker",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "ffmpeg transcoder run by GitHub Actions. Built in Phase 2.",
+  "scripts": {
+    "typecheck": "node --check transcode.mjs"
+  }
+}

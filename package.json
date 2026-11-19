@@ -1,0 +1,35 @@
+{
+  "name": "geet",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Free music with friends.",
+  "license": "SEE LICENSE IN LICENSE",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "workspaces": [
+    "web",
+    "api",
+    "worker",
+    "packages/shared"
+  ],
+  "scripts": {
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "npm run test --workspaces --if-present",
+    "test:sql": "node scripts/test-sql.mjs",
+    "build": "npm run build --workspaces --if-present",
+    "backup": "node scripts/backup.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.15.0",
+    "globals": "^16.0.0",
+    "prettier": "^3.10.1",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.40.0",
+    "vitest": "^5.1.1"
+  }
+}

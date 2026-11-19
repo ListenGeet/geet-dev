@@ -1,0 +1,70 @@
+name: transcode
+
+# Audio processing worker. Free and unlimited on a PUBLIC repo.
+# Fast path: the API sends a repository_dispatch event the moment an upload finishes
+#   (POST /repos/OWNER/REPO/dispatches with {"event_type":"transcode","client_payload":{"env":"production"}}).
+# Safety net: every 15 minutes (also recovers expired job leases).
+# Needs, per GitHub Environment (production, dev): secrets API_URL and WORKER_SECRET.
+# Repo variable RUN_SCHEDULED=true must be set in the real repo only, so forks do nothing.
+on:
+  repository_dispatch:
+    types: [transcode]
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  drain:
+    if: ${{ vars.RUN_SCHEDULED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [production, dev]
+    environment: ${{ matrix.env }}
+    concurrency:
+      group: transcode-${{ matrix.env }}
+      cancel-in-progress: false
+    steps:
+      - name: Only the targeted environment on dispatch
+        id: gate
+        env:
+          WANT: ${{ github.event.client_payload.env }}
+          EVENT: ${{ github.event_name }}
+          MINE: ${{ matrix.env }}
+        run: |
+          if [ "$EVENT" = "repository_dispatch" ] && [ -n "$WANT" ] && [ "$WANT" != "$MINE" ]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.run == 'true'
+        with:
+          sparse-checkout: worker
+          fetch-depth: 1
+
+      - name: ffmpeg
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          command -v ffmpeg >/dev/null 2>&1 || {
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq --no-install-recommends ffmpeg
+          }
+          ffmpeg -version | head -1
+
+      - name: Drain the queue
+        if: steps.gate.outputs.run == 'true'
+        env:
+          API_URL: ${{ secrets.API_URL }}
+          WORKER_SECRET: ${{ secrets.WORKER_SECRET }}
+          LANES: '3'
+          BUDGET_SECONDS: '480'
+        run: |
+          test -n "$API_URL" && test -n "$WORKER_SECRET" || { echo "API_URL and WORKER_SECRET are required"; exit 1; }
+          node worker/transcode.mjs

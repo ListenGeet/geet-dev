@@ -1,0 +1,238 @@
+@import './tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--bg);
+  color-scheme: dark;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--text);
+  font-family:
+    var(--font-body), var(--font-gurmukhi), var(--font-devanagari), system-ui, sans-serif;
+  font-size: 0.9375rem;
+  line-height: 1.4667;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Indic text: taller lines, no negative tracking, never uppercase (docs/01). */
+:lang(pa),
+:lang(hi) {
+  line-height: 1.57;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+h1,
+h2 {
+  font-family: var(--font-display), var(--font-gurmukhi), var(--font-devanagari), sans-serif;
+  margin: 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Buttons (docs/03). One primary yellow button per screen. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 20px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  font:
+    600 0.9375rem/1 var(--font-body),
+    sans-serif;
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    background-color var(--ease-state),
+    transform var(--ease-press);
+}
+.btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+.btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+  pointer-events: none;
+}
+.btn {
+  position: relative;
+}
+.btn-label-locked {
+  visibility: hidden;
+}
+.btn-spinner {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+.btn-sm {
+  height: 36px;
+}
+.btn-primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.btn-primary:hover {
+  background: var(--accent-soft);
+}
+.btn-primary:active:not(:disabled) {
+  background: var(--accent-press);
+}
+.btn-secondary {
+  background: transparent;
+  color: var(--text);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+.btn-secondary:hover {
+  background: var(--raised);
+}
+.btn-text {
+  background: transparent;
+  color: var(--text);
+  padding: 0 12px;
+}
+.btn-text:hover {
+  text-decoration: underline;
+}
+.btn-destructive {
+  background: transparent;
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.btn-destructive:hover {
+  background: var(--raised);
+}
+.btn-destructive.btn-confirm {
+  background: var(--danger);
+  color: var(--on-accent);
+}
+.btn-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: background-color var(--ease-state);
+}
+.btn-icon:hover {
+  background: var(--raised);
+}
+
+/* Equalizer: five 3 px bars, 900 ms loop, staggered 120 ms (docs/01, docs/03). */
+.eq {
+  display: inline-flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: calc(var(--eq-size) * 0.0833);
+  height: var(--eq-size);
+  width: calc(var(--eq-size) * 0.9);
+  color: var(--accent);
+}
+.eq > span {
+  display: block;
+  flex: 0 0 auto;
+  width: var(--eq-bar);
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: currentColor;
+  transform-origin: bottom;
+  animation: eq-bounce 900ms ease-in-out infinite;
+}
+.eq > span:nth-child(1) {
+  animation-delay: 0ms;
+}
+.eq > span:nth-child(2) {
+  animation-delay: 120ms;
+}
+.eq > span:nth-child(3) {
+  animation-delay: 240ms;
+}
+.eq > span:nth-child(4) {
+  animation-delay: 360ms;
+}
+.eq > span:nth-child(5) {
+  animation-delay: 480ms;
+}
+@keyframes eq-bounce {
+  0%,
+  100% {
+    transform: scaleY(0.2);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+/* Reduced motion: freeze at mid height. */
+@media (prefers-reduced-motion: reduce) {
+  .eq > span {
+    animation: none;
+    transform: scaleY(0.6);
+  }
+}
+.eq-paused > span {
+  animation-play-state: paused;
+}
+
+/* Placeholder page */
+.stage {
+  min-height: 100dvh;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 32px;
+  padding: var(--gutter);
+}
+.stage img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+.env-bar {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: var(--danger);
+  z-index: 100;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.logo {
+  margin: 0;
+  line-height: 0;
+  color: var(--text);
+  font-size: 1.5rem;
+}

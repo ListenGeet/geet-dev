@@ -1,0 +1,50 @@
+name: backup
+
+# Weekly catalog and config export (tracks, track_files, track_lyrics, promos).
+# No emails, credentials, messages, or listening history.
+#
+# CHANGED FOR A PUBLIC REPOSITORY: artifacts of public repos can be downloaded by any signed-in
+# GitHub user, so the export is encrypted with AES-256 before upload. Without the passphrase it is noise.
+# Secrets (environment "production"): NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, BACKUP_PASSPHRASE.
+# Repo variable RUN_SCHEDULED=true must exist in the real repo only, so forks do not run this.
+on:
+  schedule:
+    - cron: '41 2 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    if: ${{ vars.RUN_SCHEDULED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Export
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run backup
+      - name: Encrypt
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          test -n "$BACKUP_PASSPHRASE" || { echo "BACKUP_PASSPHRASE secret is required"; exit 1; }
+          tar czf geet-backup.tgz -C backups .
+          printf '%s' "$BACKUP_PASSPHRASE" | gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 \
+            --symmetric --cipher-algo AES256 -o geet-backup.tgz.gpg geet-backup.tgz
+          rm -rf backups geet-backup.tgz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: geet-backup-${{ github.run_id }}
+          path: geet-backup.tgz.gpg
+          if-no-files-found: error
+          retention-days: 30
