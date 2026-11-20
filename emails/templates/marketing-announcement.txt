@@ -1,0 +1,15 @@
+{{kicker}}
+
+{{headline}}
+
+{{body_text}}
+
+{{cta_label}}: {{cta_url}}
+
+--
+You're receiving this because you chose to get Geet news at listengeet.com.
+Unsubscribe: {{unsubscribe_url}}
+Email preferences: {{preferences_url}}
+Geet, {{postal_address}}
+
+Geet - Music sounds better together.

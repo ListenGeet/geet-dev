@@ -42,7 +42,7 @@ export function webCsp({ dev = false, extraConnect = [] }: WebOptions = {}): str
     'media-src': ["'self'", 'blob:', ...storage, ...supabase.slice(0, 1)],
     'connect-src': ["'self'", ...clerk, ...supabase, ...storage, ...extraConnect],
     'frame-src': ['https://challenges.cloudflare.com', ...clerk],
-    'worker-src': ["'self'"],
+    'worker-src': ["'self'", 'blob:'],
     'manifest-src': ["'self'"],
     'object-src': ["'none'"],
     'base-uri': ["'self'"],

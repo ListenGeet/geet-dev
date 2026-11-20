@@ -1,0 +1,15 @@
+You're in, {{first_name}}.
+
+Your Geet account is ready. Three things worth doing first:
+
+1. Pick your languages and a few artists. Home gets better straight away.
+2. Add a friend. Your username is @{{username}}. Share it and they can find you.
+3. Start a jam. Everyone hears the same moment of the same song.
+
+Open Geet: {{app_url}}
+
+Need a hand? Just reply to this email.
+
+You're getting this because you created a Geet account with {{email}}. It is a one-time account email, not marketing.
+
+Geet - Music sounds better together.

@@ -28,11 +28,27 @@ const origins = (v: string) => {
 export const webEnv: EnvRule[] = [
   { name: 'NEXT_PUBLIC_APP_URL', check: isUrl },
   { name: 'NEXT_PUBLIC_API_URL', check: isUrl },
+  {
+    name: 'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY',
+    check: (v) => (v.startsWith('pk_') ? null : 'must start with pk_'),
+  },
 ];
+
+const emailFrom = (v: string) =>
+  /^.+<[^<>@\s]+@[^<>@\s]+>$/.test(v) ? null : 'must look like Name <address@domain>';
 
 export const apiEnv: EnvRule[] = [
   { name: 'NEXT_PUBLIC_APP_URL', check: isUrl },
   { name: 'CORS_ORIGINS', check: origins },
+  { name: 'CLERK_SECRET_KEY', minLength: 8 },
+  { name: 'CLERK_WEBHOOK_SECRET', minLength: 16 },
+  { name: 'NEXT_PUBLIC_SUPABASE_URL', check: isUrl },
+  { name: 'SUPABASE_SERVICE_ROLE_KEY', minLength: 8 },
+  { name: 'RESEND_API_KEY', minLength: 8 },
+  { name: 'EMAIL_FROM_SECURITY', check: emailFrom },
+  { name: 'EMAIL_FROM_HELLO', check: emailFrom },
+  { name: 'EMAIL_REPLY_TO_SUPPORT' },
+  { name: 'ADMIN_EMAILS' },
 ];
 
 /** Returns one message per problem. Never includes the value itself. */

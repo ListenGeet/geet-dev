@@ -1,0 +1,22 @@
+NEW ON GEET
+
+{{headline}}
+
+{{intro}}
+
+1. {{track1_title}} - {{track1_artist}} ({{track1_language}})
+   {{track1_url}}
+2. {{track2_title}} - {{track2_artist}} ({{track2_language}})
+   {{track2_url}}
+3. {{track3_title}} - {{track3_artist}} ({{track3_language}})
+   {{track3_url}}
+
+See all new songs: {{cta_url}}
+
+--
+You're receiving this because you chose to get Geet news at listengeet.com.
+Unsubscribe: {{unsubscribe_url}}
+Email preferences: {{preferences_url}}
+Geet, {{postal_address}}
+
+Geet - Music sounds better together.

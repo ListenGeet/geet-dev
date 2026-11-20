@@ -12,6 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@clerk/nextjs": "^7.10.5",
     "@geet/shared": "*",
     "@phosphor-icons/react": "^2.1.10",
     "next": "^16.4.6",

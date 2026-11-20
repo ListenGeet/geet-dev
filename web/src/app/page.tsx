@@ -1,9 +1,13 @@
+import { AccountMenu } from '@/components/auth/AccountMenu';
 import { Equalizer } from '@/components/Equalizer';
 
 /** Phase 0 placeholder: black page, the Geet logo, the equalizer. The catalogue arrives in Phase 3. */
 export default function Page() {
   return (
     <main className="stage">
+      <header className="topbar">
+        <AccountMenu />
+      </header>
       <h1 className="logo">
         <img
           src="/brand/geet-wordmark-white.png"

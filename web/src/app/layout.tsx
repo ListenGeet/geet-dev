@@ -1,5 +1,9 @@
+import { ClerkProvider } from '@clerk/nextjs';
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
+import { clerkAppearance } from '@/components/auth/clerkAppearance';
+import { MeProvider } from '@/components/auth/MeProvider';
+import { OnboardingGuard } from '@/components/auth/OnboardingGuard';
 import { RegisterServiceWorker } from '@/components/RegisterServiceWorker';
 import { isDevSite } from '@/lib/site';
 import { inter, notoDevanagari, notoGurmukhi, outfit } from './fonts';
@@ -44,7 +48,19 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en" className={fonts}>
       <body>
         {dev ? <div className="env-bar" role="presentation" data-testid="dev-bar" /> : null}
-        {children}
+        <ClerkProvider
+          appearance={clerkAppearance}
+          signInUrl="/sign-in"
+          signUpUrl="/sign-up"
+          signInFallbackRedirectUrl="/"
+          signUpForceRedirectUrl="/onboarding"
+          localization={{ formButtonPrimary: 'Email me a code' }}
+        >
+          <MeProvider>
+            <OnboardingGuard />
+            {children}
+          </MeProvider>
+        </ClerkProvider>
         <RegisterServiceWorker />
       </body>
     </html>

@@ -8,3 +8,4 @@ _spec
 emails
 web/public
 .github
+api/src/lib/email/templates.generated.ts

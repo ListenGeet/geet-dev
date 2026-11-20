@@ -1,9 +1,9 @@
 import type { CSSProperties } from 'react';
 
-export type EqualizerSize = 14 | 24 | 48;
+export type EqualizerSize = 14 | 24 | 40 | 48;
 
 interface EqualizerProps {
-  /** 14 inline, 24 buffering, 48 empty or loading screens (docs/03). */
+  /** 14 inline, 24 buffering, 40 the sign-in sheet, 48 empty or loading screens (docs/03, docs/05). */
   size?: EqualizerSize;
   /** Stops the animation but keeps the bars visible. */
   paused?: boolean;

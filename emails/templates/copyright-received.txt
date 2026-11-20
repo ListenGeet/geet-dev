@@ -1,0 +1,17 @@
+We received your report
+
+Thanks. We received your copyright report about "{{track_title}}" on {{date}}.
+
+Reference: {{reference}}
+Song: {{track_title}} - {{track_artist}}
+
+What happens next
+1. We review it within {{days}} working days.
+2. If the claim is valid, we remove the song and tell you.
+3. We may write to you at this address for more detail. Reply to this email to add information.
+
+This is an automatic acknowledgement, not a legal decision.
+
+You're getting this because a copyright report was submitted with {{email}} on listengeet.com.
+
+Geet - Music sounds better together.

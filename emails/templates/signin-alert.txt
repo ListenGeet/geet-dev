@@ -1,0 +1,20 @@
+New sign-in to your Geet account
+
+Someone signed in to your Geet account from a device we haven't seen before.
+
+Device: {{device}}
+Location: {{location}} (approximate)
+Time: {{time}}
+Signed in with: {{method}}
+
+If this was you, there's nothing to do.
+
+If it wasn't, sign out of every device now:
+{{secure_url}}
+
+Then check how you sign in (Google or email) is still safe.
+
+Geet will never ask for a sign-in code by email, message or phone call.
+Security email for {{email}}. You can't turn these off.
+
+Geet - Music sounds better together.

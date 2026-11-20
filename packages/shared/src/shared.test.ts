@@ -1,26 +1,41 @@
 import { describe, expect, it } from 'vitest';
 import { apiEnv, assertEnv, corsHeaders, parseOrigins, validateEnv } from './index';
 
+const fullApiEnv = {
+  NEXT_PUBLIC_APP_URL: 'https://a.example.com',
+  CORS_ORIGINS: 'https://a.example.com, http://localhost:3000',
+  CLERK_SECRET_KEY: 'sk_test_0123456789',
+  CLERK_WEBHOOK_SECRET: 'whsec_0123456789abcdef',
+  NEXT_PUBLIC_SUPABASE_URL: 'https://x.supabase.co',
+  SUPABASE_SERVICE_ROLE_KEY: 'service-role-0123',
+  RESEND_API_KEY: 're_0123456789',
+  EMAIL_FROM_SECURITY: 'Geet Security <security@a.example.com>',
+  EMAIL_FROM_HELLO: 'Geet <hello@a.example.com>',
+  EMAIL_REPLY_TO_SUPPORT: 'support@a.example.com',
+  ADMIN_EMAILS: 'me@a.example.com',
+};
+
 describe('validateEnv', () => {
   it('reports missing variables by name only', () => {
-    expect(validateEnv(apiEnv, {})).toEqual([
-      'NEXT_PUBLIC_APP_URL is missing',
-      'CORS_ORIGINS is missing',
-    ]);
+    const problems = validateEnv(apiEnv, {});
+    expect(problems).toContain('NEXT_PUBLIC_APP_URL is missing');
+    expect(problems).toContain('CORS_ORIGINS is missing');
+    expect(problems).toContain('CLERK_WEBHOOK_SECRET is missing');
+    expect(problems).toContain('SUPABASE_SERVICE_ROLE_KEY is missing');
   });
   it('accepts valid values', () => {
-    const env = {
-      NEXT_PUBLIC_APP_URL: 'https://a.example.com',
-      CORS_ORIGINS: 'https://a.example.com, http://localhost:3000',
-    };
-    expect(validateEnv(apiEnv, env)).toEqual([]);
+    expect(validateEnv(apiEnv, fullApiEnv)).toEqual([]);
   });
   it('does not echo a bad value', () => {
     const problems = validateEnv(apiEnv, {
+      ...fullApiEnv,
       NEXT_PUBLIC_APP_URL: 'nope',
-      CORS_ORIGINS: 'https://a.example.com',
+      EMAIL_FROM_HELLO: 'hello@a.example.com',
     });
-    expect(problems).toEqual(['NEXT_PUBLIC_APP_URL must be a URL']);
+    expect(problems).toEqual([
+      'NEXT_PUBLIC_APP_URL must be a URL',
+      'EMAIL_FROM_HELLO must look like Name <address@domain>',
+    ]);
   });
 });
 

@@ -1,0 +1,26 @@
+{
+  "verification-code": {
+    "subject": "{{code}} is your Geet code",
+    "from": "security"
+  },
+  "signin-alert": {
+    "subject": "New sign-in to your Geet account",
+    "from": "security"
+  },
+  "welcome": {
+    "subject": "Welcome to Geet",
+    "from": "hello"
+  },
+  "marketing-announcement": {
+    "subject": "{{subject}}",
+    "from": "marketing"
+  },
+  "marketing-weekly": {
+    "subject": "{{subject}}",
+    "from": "marketing"
+  },
+  "copyright-received": {
+    "subject": "We received your copyright report ({{reference}})",
+    "from": "copyright"
+  }
+}

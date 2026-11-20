@@ -1,0 +1,12 @@
+Your Geet sign-in code
+
+{{code}}
+
+Enter this code in Geet to {{purpose}}. It expires in {{minutes}} minutes.
+
+Didn't ask for this? You can ignore this email. Someone may have typed your address by mistake.
+
+Geet will never ask you for this code by email, message or phone call. Don't share it.
+Security email for {{email}}. You can't turn these off.
+
+Geet - Music sounds better together.
