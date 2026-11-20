@@ -2,7 +2,7 @@
 
 ## Sign in / sign up `/sign-in`, `/sign-up`
 
-Use Clerk's default `<SignIn>` and `<SignUp>` components inside Geet's auth shell. Keep the midnight background, side logo, tagline, and footer links; only set the Clerk card background to Geet's `--midnight` token, leaving its controls and localization at their defaults. Configure Google and email one-time code in Clerk; phone SMS is excluded because it costs money. The Clerk provider routes to `/sign-in` and `/sign-up`; first sign-up goes to `/onboarding`, and later sign-ins return to the requested URL.
+Use Clerk's `<SignIn>` and `<SignUp>` components inside Geet's auth shell. Keep the midnight background, side logo, tagline, and footer links. Style the card and form controls with Geet's midnight, black, white, and yellow tokens while retaining Clerk's component structure and default Google button. Configure Google and email one-time code in Clerk; phone SMS is excluded because it costs money. The Clerk provider routes to `/sign-in` and `/sign-up`; first sign-up goes to `/onboarding`, and later sign-ins return to the requested URL.
 
 **Sign-in gate sheet** (shown when a guest hits a signed-in feature)
 - Bottom sheet (phone) or dialog (desktop). Top: the five-bar mark in yellow, 40 px.
