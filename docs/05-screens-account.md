@@ -2,7 +2,7 @@
 
 ## Sign in / sign up `/sign-in`, `/sign-up`
 
-Use Clerk's default `<SignIn>` and `<SignUp>` components, with no custom appearance, localization, or surrounding auth shell. Configure Google and email one-time code in Clerk; phone SMS is excluded because it costs money. The Clerk provider routes to `/sign-in` and `/sign-up`; first sign-up goes to `/onboarding`, and later sign-ins return to the requested URL.
+Use Clerk's default `<SignIn>` and `<SignUp>` components inside Geet's auth shell. Keep the midnight background, side logo, tagline, and footer links; do not customize Clerk's component appearance or localization. Configure Google and email one-time code in Clerk; phone SMS is excluded because it costs money. The Clerk provider routes to `/sign-in` and `/sign-up`; first sign-up goes to `/onboarding`, and later sign-ins return to the requested URL.
 
 **Sign-in gate sheet** (shown when a guest hits a signed-in feature)
 - Bottom sheet (phone) or dialog (desktop). Top: the five-bar mark in yellow, 40 px.

@@ -312,6 +312,80 @@ h2 {
   background: var(--line);
 }
 
+/* Sign-in and sign-up shell around Clerk's default components. */
+.auth {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 1fr;
+  background: var(--midnight);
+}
+.auth-brand {
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: 24px;
+  padding: 32px var(--gutter) 8px;
+}
+.auth-logo {
+  height: 56px;
+  width: auto;
+}
+.auth-tagline {
+  display: none;
+  margin: 0;
+  max-width: 14ch;
+  font: 800 2.5rem/1.1 var(--font-display);
+}
+.auth-tagline span {
+  color: var(--accent);
+}
+.auth-form {
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  padding: 24px var(--gutter) 48px;
+}
+.auth-column {
+  width: 100%;
+  max-width: 400px;
+  display: grid;
+  gap: 20px;
+  justify-items: center;
+}
+.auth-legal {
+  margin: 0;
+  text-align: center;
+  color: var(--text-2);
+  font-size: 0.8125rem;
+}
+.auth-legal a,
+.auth-guest {
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.auth-guest {
+  font-size: 0.875rem;
+}
+@media (min-width: 900px) {
+  .auth {
+    grid-template-columns: 1fr 1fr;
+  }
+  .auth-brand {
+    padding: 64px;
+    align-content: center;
+  }
+  .auth-logo {
+    height: 72px;
+  }
+  .auth-tagline {
+    display: block;
+  }
+  .auth-form {
+    align-content: center;
+  }
+}
+
 /* Gate sheet: bottom sheet on phones, dialog on desktop (docs/03, docs/05) */
 .sheet {
   width: 100%;
