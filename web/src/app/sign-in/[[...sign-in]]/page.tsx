@@ -7,7 +7,7 @@ export default function Page() {
   return (
     <AuthShell>
       <SignIn
-        appearance={{ elements: { card: { backgroundColor: 'var(--bg)' } } }}
+        appearance={{ elements: { card: { backgroundColor: 'var(--midnight)' } } }}
         routing="path"
         path="/sign-in"
         signUpUrl="/sign-up"
