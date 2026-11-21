@@ -1,0 +1,41 @@
+name: Bug report
+description: Report a reproducible problem in Geet
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: "Please remove credentials, personal information and private production data from your report."
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: A clear description of the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Include the smallest set of steps that reproduces the issue.
+      placeholder: |
+        1. Open ...
+        2. Choose ...
+        3. See ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Browser or runtime
+      placeholder: Browser and version, OS, or Node.js version
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+      description: Screenshots or logs with sensitive details removed.
