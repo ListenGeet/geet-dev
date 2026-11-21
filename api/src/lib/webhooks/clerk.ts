@@ -1,4 +1,4 @@
-import { isDevHost, normalizeUsername, usernameProblem } from '@geet/shared';
+import { isDevHost } from '@geet/shared';
 import { personFromWebhook, roleFor, type ClerkPerson } from '../clerk';
 import { sendTemplate } from '../email/send';
 import * as repo from '../repo';
@@ -11,21 +11,6 @@ export interface ClerkEvent {
 
 export type Handled =
   'welcome_sent' | 'welcome_skipped' | 'deleted' | 'email_sent' | 'email_skipped' | 'ignored';
-
-/** A handle for the welcome email's "Your username is @…" line, before the person has picked one. */
-export function suggestHandle(
-  person: Pick<ClerkPerson, 'username' | 'displayName' | 'email'>,
-): string {
-  const candidates = [person.username, person.displayName, person.email?.split('@')[0]];
-  for (const c of candidates) {
-    if (!c) continue;
-    const handle = normalizeUsername(c.normalize('NFKD').replace(/[^\w.\s]/g, ''))
-      .replace(/\s+/g, '')
-      .replace(/[^a-z0-9_.]/g, '');
-    if (usernameProblem(handle) === null) return handle;
-  }
-  return 'yourname';
-}
 
 const firstName = (person: ClerkPerson): string =>
   (person.displayName ?? 'there').split(' ')[0] ?? 'there';
@@ -54,7 +39,6 @@ async function onUserCreated(data: Record<string, unknown>): Promise<Handled> {
       'welcome',
       {
         first_name: firstName(person),
-        username: profile.username ?? suggestHandle(person),
         app_url: (process.env.NEXT_PUBLIC_APP_URL ?? '').replace(/\/$/, ''),
         email: person.email,
       },

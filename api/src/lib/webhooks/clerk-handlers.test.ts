@@ -12,7 +12,7 @@ const sendTemplate = vi.hoisted(() => vi.fn());
 vi.mock('../repo', () => repo);
 vi.mock('../email/send', () => ({ sendTemplate, sendClerkBody: vi.fn() }));
 
-import { handleClerkEvent, suggestHandle } from './clerk';
+import { handleClerkEvent } from './clerk';
 
 const user = {
   id: 'user_1',
@@ -56,7 +56,6 @@ describe('user.created', () => {
       'welcome',
       {
         first_name: 'Hardeep',
-        username: 'hardeepsingh',
         app_url: 'https://listengeet.com',
         email: 'hardeep@example.com',
       },
@@ -134,23 +133,5 @@ describe('user.deleted', () => {
 describe('other events', () => {
   it('acknowledges and ignores them', async () => {
     expect(await handleClerkEvent({ type: 'session.created', data: {} }, 'm')).toBe('ignored');
-  });
-});
-
-describe('suggestHandle', () => {
-  it('uses a valid Clerk username first, then the name, then the address', () => {
-    expect(suggestHandle({ username: 'hs.music', displayName: 'Hardeep', email: 'a@b.co' })).toBe(
-      'hs.music',
-    );
-    expect(suggestHandle({ username: null, displayName: 'Hardeep Singh', email: 'a@b.co' })).toBe(
-      'hardeepsingh',
-    );
-    expect(suggestHandle({ username: null, displayName: null, email: 'h.singh@b.co' })).toBe(
-      'h.singh',
-    );
-  });
-  it('falls back when nothing is usable or the name is reserved', () => {
-    expect(suggestHandle({ username: null, displayName: 'ਹਰਦੀਪ', email: null })).toBe('yourname');
-    expect(suggestHandle({ username: null, displayName: 'Admin', email: null })).toBe('yourname');
   });
 });

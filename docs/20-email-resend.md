@@ -142,7 +142,7 @@ Each has an `.html` and a `.txt` (plain text is required: send both). Placeholde
 |---|---|---|---|
 | `verification-code` | security@ | `{{code}} is your Geet code` | `code`, `purpose` ("sign in", "create your account"), `minutes`, `email` |
 | `signin-alert` | security@ | `New sign-in to your Geet account` | `device`, `location`, `time`, `method`, `secure_url`, `email` |
-| `welcome` | hello@ | `Welcome to Geet` | `first_name`, `username`, `app_url`, `email` |
+| `welcome` | hello@ | `Welcome to Geet` | `first_name`, `app_url`, `email` |
 | `marketing-announcement` | marketing@ | `{{subject}}` | `subject`, `preheader`, `hero_image`, `hero_alt`, `kicker`, `headline`, `body_html`, `body_text`, `cta_label`, `cta_url`, `unsubscribe_url`, `preferences_url`, `postal_address` |
 | `marketing-weekly` | marketing@ | `{{subject}}` (default "New on Geet this week") | `subject`, `preheader`, `headline`, `intro`, `track1..3_{title,artist,language,url,cover}`, `cta_url`, `unsubscribe_url`, `preferences_url`, `postal_address` |
 | `copyright-received` | copyright@ | `We received your copyright report ({{reference}})` | `reference`, `track_title`, `track_artist`, `date`, `days`, `email` |

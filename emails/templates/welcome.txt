@@ -3,7 +3,7 @@ You're in, {{first_name}}.
 Your Geet account is ready. Three things worth doing first:
 
 1. Pick your languages and a few artists. Home gets better straight away.
-2. Add a friend. Your username is @{{username}}. Share it and they can find you.
+2. Add a friend. They will see you as {{first_name}}.
 3. Start a jam. Everyone hears the same moment of the same song.
 
 Open Geet: {{app_url}}

@@ -33,19 +33,19 @@ describe('templates', () => {
   it('welcome is from hello@ and says who it is for', () => {
     const r = render('welcome', {
       first_name: 'Hardeep',
-      username: 'hardeep',
       app_url: 'https://listengeet.com',
       email: 'h@x.co',
     });
     expect(r.sender).toBe('hello');
     expect(r.subject).toBe('Welcome to Geet');
     expect(r.html).toContain('Hardeep');
-    expect(r.text).toContain('@hardeep');
+    expect(r.text).toContain('They will see you as Hardeep.');
+    expect(r.text).not.toContain('@Hardeep');
+    expect(r.html).not.toMatch(/username/i);
   });
   it('escapes values in HTML but not in the text part', () => {
     const r = render('welcome', {
       first_name: '<b>Al</b> & "Co"',
-      username: 'x',
       app_url: 'https://a.co',
       email: 'a@b.co',
     });
