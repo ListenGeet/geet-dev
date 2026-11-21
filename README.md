@@ -3,11 +3,11 @@
 
   <h1>Geet</h1>
 
-  **Music sounds better together.**
+**Music sounds better together.**
 
-  A free, mobile-first music app built around sharing songs and listening with friends.
+A free, mobile-first music app built around sharing songs and listening with friends.
 
-  [Listen at listengeet.com](https://listengeet.com) · [Explore the architecture](docs/12-architecture-hosting-dns.md) · [Contribute](CONTRIBUTING.md)
+[Listen at listengeet.com](https://listengeet.com) · [Explore the architecture](docs/12-architecture-hosting-dns.md) · [Contribute](CONTRIBUTING.md)
 </div>
 
 ---
@@ -29,15 +29,15 @@ These describe the product direction; check the phase documents for what is impl
 
 ## Project structure
 
-| Path | Purpose |
-| --- | --- |
-| [`web/`](web/) | Next.js progressive web app |
-| [`api/`](api/) | Next.js API service |
-| [`worker/`](worker/) | Audio transcoding worker |
-| [`packages/shared/`](packages/shared/) | Shared types and server helpers |
-| [`supabase/`](supabase/) | Database migrations and SQL tests |
-| [`docs/`](docs/) | Product, design, architecture and API documentation |
-| [`phases/`](phases/) | Build plan and phase notes |
+| Path                                   | Purpose                                             |
+| -------------------------------------- | --------------------------------------------------- |
+| [`web/`](web/)                         | Next.js progressive web app                         |
+| [`api/`](api/)                         | Next.js API service                                 |
+| [`worker/`](worker/)                   | Audio transcoding worker                            |
+| [`packages/shared/`](packages/shared/) | Shared types and server helpers                     |
+| [`supabase/`](supabase/)               | Database migrations and SQL tests                   |
+| [`docs/`](docs/)                       | Product, design, architecture and API documentation |
+| [`phases/`](phases/)                   | Build plan and phase notes                          |
 
 ## Run locally
 
