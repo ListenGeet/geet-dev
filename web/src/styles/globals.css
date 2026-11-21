@@ -312,7 +312,7 @@ h2 {
   background: var(--line);
 }
 
-/* Sign-in and sign-up (docs/05) */
+/* Sign-in and sign-up shell around Clerk's default components. */
 .auth {
   min-height: 100dvh;
   display: grid;

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
-/** Full-screen midnight page for sign-in and sign-up (docs/05). The tagline shows on desktop only. */
+/** Branded frame around Clerk's default sign-in and sign-up components. */
 export function AuthShell({ children }: { children: ReactNode }) {
   return (
     <main className="auth">

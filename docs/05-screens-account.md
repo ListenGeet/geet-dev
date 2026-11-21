@@ -2,16 +2,7 @@
 
 ## Sign in / sign up `/sign-in`, `/sign-up`
 
-Built with Clerk's components, themed to Geet. Methods: **Google** and **email one-time code** (no passwords to forget; phone SMS is excluded because it costs money).
-
-**Layout**
-- Full screen `midnight` background.
-- Desktop: two halves. Left half: lockup (yellow disc 72, "Geet" white wordmark 40 px) and the tagline in Outfit 800 40 with "Better Together" in yellow, nothing else. Right half: the form column, 400 px.
-- Phone: lockup at top (disc 56 + wordmark), form below, tagline omitted.
-- Form: Clerk card with no card chrome: `surface` background panel only if needed. Clerk appearance variables: primary `#FFDC00`, text `#FFFFFF`, background `#181818`, input background `#000000`, radius 10 px, font Inter.
-- Buttons: "Continue with Google" is the **primary** method: first, full width, yellow. Then an "or" hairline, then the email field and **Email me a code** as a secondary (outline) button. Reason: each email code uses one of Resend's 100 free emails per day (doc 20). The code arrives from `security@listengeet.com` in Geet's own template, not Clerk's.
-- Under the form: "By continuing you agree to the Terms and Privacy." and "Keep browsing as a guest" text link back to Home.
-- After first sign-up: `/onboarding`. After later sign-ins: back to where they were (the `redirect_url`).
+Use Clerk's `<SignIn>` and `<SignUp>` components inside Geet's auth shell. Keep the midnight background, side logo, tagline, and footer links. Style the card and form controls with Geet's midnight, black, white, and yellow tokens while retaining Clerk's component structure and default Google button. Configure Google and email one-time code in Clerk; phone SMS is excluded because it costs money. The Clerk provider routes to `/sign-in` and `/sign-up`; first sign-up goes to `/onboarding`, and later sign-ins return to the requested URL.
 
 **Sign-in gate sheet** (shown when a guest hits a signed-in feature)
 - Bottom sheet (phone) or dialog (desktop). Top: the five-bar mark in yellow, 40 px.
