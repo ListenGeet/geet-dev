@@ -40,6 +40,7 @@ public.uid() returns uuid   -- security definer, stable
 |---|---|---|
 | `tracks` | `id uuid pk`, `uploader_id`, `title`, `artist`, `artist_key` (normalized lower, trimmed, NFKC), `album`, `language`, `genre`, `search_text` (title + artist + album + transliteration), `translit`, `duration_ms`, `waveform smallint[64]`, `status` (`uploading` / `queued` / `processing` / `ready` / `failed` / `hidden` / `removed`), `plays int default 0`, `error text`, `created_at`, `removed_at`, `removed_by` | Index: GIN trigram on `search_text` (`pg_trgm`), btree `(status, created_at desc)`, `(artist_key)`, `(language)` |
 | `track_files` | `track_id`, `kind` (`full` / `preview` / `cover`), `path`, `size_bytes`, `codec`, `bitrate_kbps`, `content_type` | Server only. Paths follow the key structure in doc 14 |
+| `track_fingerprints` | `track_id uuid pk references tracks on delete cascade`, `sha256 char(64) unique`, `created_at` | Server only. Reserves the exact source-file digest across existing and in-flight uploads to prevent duplicates; unique constraint handles concurrent creates |
 | `track_lyrics` | `track_id pk`, `plain text`, `synced jsonb` (array of `{t_ms, line}`) | Server only; served through the API |
 | `promos` | `id`, `kicker`, `title`, `button_label`, `image_path`, `link`, `starts_at`, `ends_at`, `active bool`, `sort int`, `created_at` | Public read of active and in-date rows |
 | `reports` | `id`, `track_id`, `reporter_id` (nullable), `reporter_email` (nullable, copyright), `kind` (`song` / `copyright`), `reason`, `note`, `claimant jsonb`, `status` (`open` / `dismissed` / `removed`), `handled_by`, `handled_at`, `created_at` | Insert by anyone through the API; read admin only |
@@ -81,7 +82,7 @@ public.uid() returns uuid   -- security definer, stable
 | User data (`favorites`, `playlists`, `playlist_tracks`, `play_history`, `search_history`, `devices`, `conversation_reads`) | All actions only where `profile_id` / `owner_id = (select uid())`; `playlist_tracks` through the owning playlist |
 | Friends, conversations, messages, jams | Select/insert only when the user is one of the people involved or a current jam member; `messages` insert requires `sender_id = uid()` and an accepted friendship; updates limited to `deleted_at` by the sender |
 | Catalogue | `tracks`: public select where `status = 'ready'`. `promos`: public select where `active` and within dates. Everything else: no policy, so server only |
-| Server-only (`track_files`, `track_lyrics`, `usage_daily`, `rate_limits`, `egress_daily`, `upload_jobs`, `identities`, `push_tokens`, `admin_log`, `reports` select) | RLS on with **no policies** |
+| Server-only (`track_files`, `track_fingerprints`, `track_lyrics`, `usage_daily`, `rate_limits`, `egress_daily`, `upload_jobs`, `identities`, `push_tokens`, `admin_log`, `reports` select) | RLS on with **no policies** |
 | Sensitive operations | `security definer` functions with explicit `grant execute` to the service role or authenticated, each re-checking `uid()` |
 
 Tests (`supabase/tests/*.sql`) must prove: a user cannot read another user's favourites, playlists, history or messages; a non-member cannot read a jam; a stranger cannot insert a message; `tracks` with `status <> 'ready'` are invisible to anon; server-only tables return nothing to `authenticated`.

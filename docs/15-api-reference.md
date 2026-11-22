@@ -1,7 +1,7 @@
 # 15 · API reference (`api.listengeet.com`)
 
 Conventions
-- JSON in and out. Errors: `{ "error": { "code": "string", "message": "plain words" } }` with the right HTTP status. Codes used: `unauthorized` 401, `forbidden` 403, `not_found` 404, `gone` 410, `rate_limited` 429, `invalid` 422, `capped` 503.
+- JSON in and out. Errors: `{ "error": { "code": "string", "message": "plain words" } }` with the right HTTP status. Codes used: `unauthorized` 401, `forbidden` 403, `not_found` 404, `gone` 410, `duplicate` 409, `rate_limited` 429, `invalid` 422, `capped` 503.
 - **Auth:** `Authorization: Bearer <Clerk session token>`. Levels: **public** (no token), **user**, **admin**, **cron** (`Authorization: Bearer <CRON_SECRET>`), **worker** (`Bearer <WORKER_SECRET>`).
 - Pagination: `?limit=` (default 30, max 100) and `?cursor=`; responses `{ items, next }`.
 - Every user endpoint is rate limited through `rate_limit_hit`. The server authorizes first, then uses the service-role client.
@@ -68,7 +68,7 @@ Conventions
 ## Uploads (user, subject to `UPLOAD_MODE`)
 | Method and path | Purpose |
 |---|---|
-| `POST /api/uploads` | Create track + job, return signed upload URL(s) |
+| `POST /api/uploads` | Create one track + job from one file's metadata and `{ sha256 }`, return its signed upload URL(s); return `409 duplicate` when the exact file is already present or uploading |
 | `POST /api/uploads/{trackId}/complete` | Verify object, queue, dispatch the worker |
 | `GET /api/uploads/{trackId}` | Status for polling |
 | `GET /api/uploads` | The user's uploads |

@@ -1,6 +1,7 @@
 'use client';
 
 import { parseBlob } from 'music-metadata';
+import Image from 'next/image';
 import { useRef, useState } from 'react';
 import { Button } from '@/components/Button';
 import { useMe } from '@/components/auth/MeProvider';
@@ -12,6 +13,12 @@ type Created = {
   headers: Record<string, string>;
 };
 
+type UploadedTrack = {
+  trackId: string;
+  title: string;
+  artist: string;
+};
+
 export default function UploadPage() {
   const { api, me, status } = useMe();
   const [file, setFile] = useState<File | null>(null);
@@ -21,6 +28,8 @@ export default function UploadPage() {
   const [message, setMessage] = useState('Choose a song to upload.');
   const [busy, setBusy] = useState(false);
   const [readingTags, setReadingTags] = useState(false);
+  const [uploadedTrack, setUploadedTrack] = useState<UploadedTrack | null>(null);
+  const [coverUnavailable, setCoverUnavailable] = useState(false);
   const metadataRequest = useRef(0);
 
   function limitField(value: string) {
@@ -41,6 +50,8 @@ export default function UploadPage() {
   async function selectFile(selected: File | null) {
     const request = ++metadataRequest.current;
     setFile(selected);
+    setUploadedTrack(null);
+    setCoverUnavailable(false);
     setArtist('');
     setAlbum('');
     setReadingTags(Boolean(selected));
@@ -86,6 +97,8 @@ export default function UploadPage() {
       setMessage('Choose an audio file first.');
       return;
     }
+    const submittedTrack = { title: title.trim(), artist: artist.trim() };
+    setUploadedTrack(null);
     setBusy(true);
     try {
       const created = await api<Created>('/api/uploads', {
@@ -123,6 +136,12 @@ export default function UploadPage() {
         const result = await api<{ status: string; error?: string }>(
           `/api/uploads/${created.trackId}`,
         );
+        if (result.status === 'ready') {
+          setUploadedTrack({ trackId: created.trackId, ...submittedTrack });
+          setCoverUnavailable(false);
+          setMessage('Song uploaded and ready.');
+          break;
+        }
         setMessage(
           result.status === 'processing'
             ? 'Processing'
@@ -176,7 +195,7 @@ export default function UploadPage() {
           <input
             required
             maxLength={120}
-            disabled={readingTags}
+            disabled={busy || readingTags}
             value={title}
             onChange={(event) => setTitle(event.target.value)}
           />
@@ -186,7 +205,7 @@ export default function UploadPage() {
           <input
             required
             maxLength={120}
-            disabled={readingTags}
+            disabled={busy || readingTags}
             value={artist}
             onChange={(event) => setArtist(event.target.value)}
           />
@@ -195,7 +214,7 @@ export default function UploadPage() {
           <span className="field-label">Album (optional)</span>
           <input
             maxLength={120}
-            disabled={readingTags}
+            disabled={busy || readingTags}
             value={album}
             onChange={(event) => setAlbum(event.target.value)}
           />
@@ -207,6 +226,28 @@ export default function UploadPage() {
       <p role="status" aria-live="polite">
         {message}
       </p>
+      {uploadedTrack && (
+        <section className="upload-confirmation" aria-labelledby="upload-confirmation-title">
+          <Image
+            className="upload-confirmation-artwork"
+            src={
+              coverUnavailable
+                ? '/illustrations/cover-fallback.svg'
+                : `/api/cover/${uploadedTrack.trackId}`
+            }
+            alt={`Cover art for ${uploadedTrack.title}`}
+            width={112}
+            height={112}
+            unoptimized
+            onError={() => setCoverUnavailable(true)}
+          />
+          <div className="upload-confirmation-copy">
+            <p className="upload-confirmation-label">Upload complete</p>
+            <h2 id="upload-confirmation-title">{uploadedTrack.title}</h2>
+            <p>{uploadedTrack.artist}</p>
+          </div>
+        </section>
+      )}
     </main>
   );
 }

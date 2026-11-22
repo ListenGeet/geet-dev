@@ -52,7 +52,7 @@ Allowed by `UPLOAD_MODE` (`admin`, `approved`, `anyone`). If not allowed: page "
 **Step 1: choose a file**
 - Phone: a single large **Choose audio file** primary button and a line "MP3, M4A, AAC, WAV, FLAC, OGG, Opus. Up to {MAX_TRACK_MB} MB." (default 50 MB: also the Supabase free-plan file cap).
 - Desktop: the whole page accepts a drag-drop; while dragging, a full-page yellow-outlined overlay "Drop to upload".
-- Multiple files allowed; each becomes its own row.
+- Multiple files allowed; each becomes its own row. Detect byte-identical files already in the catalogue or current upload queue and skip them before storage upload.
 
 **Step 2: details** (per file, a stacked form)
 | Field | Rules |
@@ -75,6 +75,7 @@ Read embedded tags locally in the browser with the exact `music-metadata@12.3.5`
 1. **Uploading** with percentage and an equalizer. The file goes straight from the browser to storage using a signed URL (doc 14), not through the server.
 2. **Queued** → **Processing** → **Ready**. Ready rows show a small Play button and "View".
 3. **Failed**: reason in plain words ("We couldn't read this file", "Longer than 15 minutes") with **Retry** and **Remove**.
+When a new upload reaches Ready, show an upload-complete banner with its title, artist, and cover image from `/api/cover/{id}`; use the standard cover fallback when no cover exists.
 Uploads continue if the user navigates within the app. On refresh, status is restored from the server.
 
 **Your uploads:** a list at the bottom (also in Profile): status chip, title, date, **Delete** (own tracks only; confirm "This deletes the song from Geet for everyone").

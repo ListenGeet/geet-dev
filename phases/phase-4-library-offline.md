@@ -19,6 +19,7 @@ Doc 04 (Playlist, Home signed-in sections) · doc 05 (Library, Profile and setti
 Chat, friends, jams, notifications, assistant, promos, reports, marketing email.
 
 ## Acceptance
+- [ ] The upgraded upload page skips a byte-identical file already present or in progress and explains that duplicate; ordinary multi-file uploads continue to work.
 - [ ] Airplane-mode test: with 3 songs saved, turn on airplane mode, reload the installed app, the offline banner shows, Downloads plays all 3, seeking works.
 - [ ] Reordering a playlist survives reload; deleting a playlist keeps the songs.
 - [ ] Favourite on one device appears on another within a refresh.

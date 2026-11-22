@@ -15,6 +15,7 @@ Doc 14 (all) · doc 12 (storage, env) · doc 15 (Uploads, Worker, Catalogue `pla
 - [ ] `repository_dispatch` trigger sent from `/complete`; `transcode.yml` already in `.github/` (check it matches the script's env names).
 - [ ] `GET /api/tracks/{id}/play` (preview for guests, full for signed-in), `GET /api/cover/{id}` (302, cacheable), egress recording.
 - [ ] Minimal admin-only upload page (`/upload`) with progress and status polling (full design arrives in Phase 3/4; keep it plain but correct).
+- [ ] Prevent duplicate song files: reserve a SHA-256 source digest atomically before issuing a signed upload URL; reject an existing/in-flight duplicate with 409 and verify the digest again in the worker.
 - [ ] Seed script: 12 generated-tone songs (ffmpeg `sine`), no real music in the repo.
 - [ ] `docs/storage-migration.md` and `npm run storage:migrate`.
 
@@ -23,7 +24,9 @@ Player, catalogue screens, playlists, reports.
 
 ## Acceptance
 - [ ] Upload a real MP3 on dev: status goes Uploading → Queued → Processing → Ready; **measure the time from upload finish to Ready and write the number in the README** (target under 60 s).
+- [ ] After Ready, show an upload-complete banner with the submitted title and artist plus the processed cover image or standard fallback.
 - [ ] Verify embedded title/artist/album tags prefill the upload form; missing tags fall back to a cleaned filename for title and manual entry for artist/album.
+- [ ] Confirm byte-identical files are skipped both against existing tracks and twice within a multi-file selection, including concurrent upload attempts; a different file remains uploadable.
 - [ ] `incoming/…` is deleted after success; `full.m4a`, `preview.m4a`, `covers/…jpg` exist with the keys in doc 14.
 - [ ] A corrupt file ends as Failed with a plain message and Retry works.
 - [ ] Switching `STORAGE_PROVIDER` between `supabase` and `b2` on dev works for upload and playback URLs (same keys). B2 bucket CORS verified from the browser.

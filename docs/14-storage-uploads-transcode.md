@@ -40,7 +40,7 @@ interface Storage {
 Cover sizes 48/96/160/320 are not stored: the browser scales the 600 px image (a 600 px JPEG is about 40 to 60 KB, cheap enough; do not add an image service).
 
 ## Upload flow (bypasses the server)
-1. **Create:** browser calls `POST /api/uploads` with metadata and file info (name, size, type). The API checks `UPLOAD_MODE`, role, size limit (`MAX_TRACK_MB`), daily limit, rate limit. It creates `tracks` (`status='uploading'`) and `upload_jobs` (`awaiting_upload`) and returns `{trackId, uploadUrl, headers}` for `incoming/<user-id>/<track-id>`, plus an optional signed upload URL for the cover.
+1. **Create:** browser computes the file digest, then calls `POST /api/uploads` with metadata and file info (name, size, type, `sha256`). The API checks `UPLOAD_MODE`, role, size limit (`MAX_TRACK_MB`), daily limit, rate limit, and atomically reserves the fingerprint. A duplicate returns 409 before creating an upload job or signed URL. Otherwise it creates `tracks` (`status='uploading'`) and `upload_jobs` (`awaiting_upload`) and returns `{trackId, uploadUrl, headers}` for `incoming/<user-id>/<track-id>`, plus an optional signed upload URL for the cover.
 2. **Upload:** the browser `PUT`s the file straight to storage with progress (XHR or fetch streams). Resumable multi-part is not needed under 50 MB.
 3. **Complete:** `POST /api/uploads/{trackId}/complete`. The API verifies the object exists and its size matches, marks the job `queued`, and **immediately triggers the GitHub transcode workflow** (below). It returns at once; the client polls `GET /api/uploads/{trackId}` (or listens to a Realtime change on `tracks`) for status.
 4. **Process:** the worker produces files, then calls complete. The track becomes `ready`, visible to everyone.
@@ -48,6 +48,9 @@ Cover sizes 48/96/160/320 are not stored: the browser scales the 600 px image (a
 
 ### Metadata before upload
 In the `web` workspace, pin `music-metadata` to exactly `12.3.5` and use its browser `parseBlob(file)` API to read embedded tags locally before upload. Prefill editable title, artist, and album fields from common tags; if title is missing, clean the filename; if artist or album is missing, leave the field available for manual entry. Parsing errors must not block manual entry. This reads file tags only; it is not an online catalogue lookup.
+
+### Duplicate detection
+Before creating an upload job or signed URL, calculate a lowercase SHA-256 digest of the selected file's exact bytes with the browser Web Crypto API and include it in the upload-create request. The API reserves that digest in a server-only `track_fingerprints` row with a unique constraint, covering catalogue tracks and uploads already in progress; a uniqueness conflict returns HTTP 409 and the UI skips that file with a clear duplicate message. This atomic reservation prevents two concurrent requests from creating duplicate tracks. The worker recomputes the digest from the downloaded source and verifies it matches the reservation before transcoding; reject a mismatch. This detects byte-identical files only, not alternate encodings or files whose tags changed.
 
 ## The transcode worker (GitHub Actions, public repo)
 Public-repo Actions minutes are free and unlimited on standard runners, which is why the worker lives there. Goal: **upload to ready in about 30 to 60 seconds**.
@@ -65,7 +68,7 @@ All calls carry `Authorization: Bearer <WORKER_SECRET>`.
 
 | Call | Purpose |
 |---|---|
-| `POST /api/worker/claim` | Atomically claims the next job (`claim_upload_job`, lease 5 min). Returns `{job, track, sourceUrl, uploads:{full, preview, cover}}` where each upload is a pre-signed PUT URL (20 min). Returns `204` if none |
+| `POST /api/worker/claim` | Atomically claims the next job (`claim_upload_job`, lease 5 min). Returns `{job, track, sourceSha256, sourceUrl, uploads:{full, preview, cover}}` where each upload is a pre-signed PUT URL (20 min). Returns `204` if none |
 | `POST /api/worker/heartbeat` | Extends the lease for long files |
 | `POST /api/worker/complete` | Body: `{jobId, durationMs, waveform:[64 ints], files:{full:{size,codec,bitrate}, preview:{…}, cover:{size}|null}, tags:{title,artist,album}}`. API records `track_files`, deletes `incoming/…`, sets `tracks.status='ready'` |
 | `POST /api/worker/fail` | Body `{jobId, error}` with a user-safe message |
