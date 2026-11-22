@@ -13,4 +13,5 @@ export interface Track {
 export interface Lyrics {
   plain: string | null;
   synced: { t_ms: number; line: string }[] | null;
+  source?: 'uploader' | 'lrclib' | 'lyrics_ovh';
 }

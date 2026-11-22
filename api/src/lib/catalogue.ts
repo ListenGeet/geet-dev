@@ -150,9 +150,9 @@ export async function trackById(id: string) {
 export async function lyricsByTrack(id: string) {
   const { data, error } = await db()
     .from('track_lyrics')
-    .select('plain,synced')
+    .select('plain,synced,source')
     .eq('track_id', id)
     .maybeSingle();
   if (error) throw new Error(`track lyrics: ${error.message}`);
-  return (data as { plain: string | null; synced: unknown | null } | null) ?? null;
+  return (data as { plain: string | null; synced: unknown | null; source: string } | null) ?? null;
 }

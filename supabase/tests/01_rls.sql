@@ -29,7 +29,11 @@ insert into jams (id, code, host_id) select '00000000-0000-0000-0000-0000000000e
 insert into jam_members (jam_id, profile_id) select '00000000-0000-0000-0000-0000000000e1', a from ids;
 -- server-only rows
 insert into track_files values ('00000000-0000-0000-0000-0000000000a1', 'full', 'tracks/x/full.m4a', 1, 'aac', 128, 'audio/mp4');
-insert into track_lyrics values ('00000000-0000-0000-0000-0000000000a1', 'words', null);
+insert into track_lyrics (track_id, plain, synced) values ('00000000-0000-0000-0000-0000000000a1', 'words', null);
+select t.assert(
+  (select source from track_lyrics where track_id = '00000000-0000-0000-0000-0000000000a1') = 'uploader',
+  'lyrics source defaults to uploader'
+);
 insert into reports (track_id, kind, reason) values ('00000000-0000-0000-0000-0000000000a1', 'song', 'Spam');
 insert into upload_jobs (track_id, state) values ('00000000-0000-0000-0000-0000000000a3', 'queued');
 insert into admin_log (action) values ('x');

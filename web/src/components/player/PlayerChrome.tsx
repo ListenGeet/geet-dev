@@ -560,7 +560,13 @@ function LyricsView() {
       ) : (
         <p className="plain-lyrics">{player.lyrics?.plain}</p>
       )}
-      <small>Lyrics added by the uploader.</small>
+      <small>
+        {player.lyrics?.source === 'lrclib'
+          ? 'Lyrics from LRCLIB via LyricsLIB.'
+          : player.lyrics?.source === 'lyrics_ovh'
+            ? 'Lyrics from Lyrics.ovh.'
+            : 'Lyrics added by the uploader.'}
+      </small>
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { fail, ok, readJson } from '@/lib/http';
 import { incomingKey, trackFileKey, coverKey } from '@geet/shared';
 import { storage } from '@/lib/storage';
+import { fetchAndStoreLyrics } from '@/lib/lyrics';
 import { preflight } from '@/lib/cors';
 
 type Params = { params: Promise<{ action: string }> };
@@ -80,7 +81,7 @@ export async function POST(request: Request, { params }: Params) {
     if (jobError) throw new Error(`worker job: ${jobError.message}`);
     const { data: track, error: trackError } = await db()
       .from('tracks')
-      .select('id,uploader_id')
+      .select('id,uploader_id,title,artist')
       .eq('id', job.track_id)
       .single();
     if (trackError) throw new Error(`worker track: ${trackError.message}`);
@@ -134,6 +135,7 @@ export async function POST(request: Request, { params }: Params) {
     });
     if (doneError) throw new Error(`worker complete: ${doneError.message}`);
     await storage().remove([incomingKey(track.uploader_id, track.id)]);
+    await fetchAndStoreLyrics(track);
     return ok(request, { completed: true });
   }
   if (action === 'fail') {
