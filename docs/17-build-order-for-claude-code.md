@@ -22,7 +22,7 @@ Build in phases. Each phase ends green: `npm run typecheck && npm run lint && np
 
 ## Phase 2: Storage, upload, transcode (the spine)
 - Storage abstraction with Supabase and B2 implementations and tests against a fake S3.
-- Upload endpoints, worker endpoints, `worker/transcode.mjs`, `repository_dispatch` trigger, status polling.
+- Upload endpoints, worker endpoints, `worker/transcode.mjs`, `repository_dispatch` trigger, status polling. In the web workspace, use `music-metadata@12.3.5` and `parseBlob(file)` to prefill editable title, artist, and album from embedded tags; clean the filename as the missing-title fallback and keep manual entry available when tags are absent or parsing fails. Do not query an online catalogue.
 - Seed: 12 generated-tone sample songs.
 - **Done when:** uploading a file ends with a playable `ready` track in under a minute on a real run, and `incoming/…` is deleted.
 

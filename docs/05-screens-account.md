@@ -57,17 +57,19 @@ Allowed by `UPLOAD_MODE` (`admin`, `approved`, `anyone`). If not allowed: page "
 **Step 2: details** (per file, a stacked form)
 | Field | Rules |
 |---|---|
-| Title* | Prefilled from file tags, filename cleaned |
-| Artist* | Prefilled from tags. Autocomplete from existing artists to prevent duplicates ("Diljit" vs "Diljit Dosanjh") |
-| Album | Optional |
+| Title* | Prefilled from embedded file tags; if missing, use the filename cleaned of its extension and common track-number prefix/suffix |
+| Artist* | Prefilled from embedded tags. Autocomplete from existing artists to prevent duplicates ("Diljit" vs "Diljit Dosanjh") |
+| Album | Optional; prefilled from embedded tags when available |
 | Language* | Select: ਪੰਜਾਬੀ, हिन्दी, English, Other (free text) |
 | Genre | Select + "Other" |
 | Search spelling | Optional "Also spelled in English letters" (e.g. "Dil"), helps search |
-| Cover | Optional JPG or PNG up to 2 MB. If empty, cover is extracted from the file; if none, the fallback is used |
+| Cover | Optional JPG or PNG up to 2 MB. If empty, use embedded cover art from the audio file; if none is present, the fallback is used |
 | Lyrics | Optional. Plain text, or `.lrc` with timestamps for synced lyrics |
 | Rights* | Checkbox: "I own this song or have permission to share it on Geet." Required |
 
 Button **Upload** (primary). Terms link under it.
+
+Read embedded tags locally in the browser with the exact `music-metadata@12.3.5` dependency in the `web` workspace, using its `parseBlob(file)` API. Use the parser's common title, artist, and album tags as editable defaults; parsing failure or missing tags must not block manual entry. If no title tag exists, derive the title from the cleaned filename. Do not send the file to a metadata lookup service.
 
 **Step 3: progress** (per file row)
 1. **Uploading** with percentage and an equalizer. The file goes straight from the browser to storage using a signed URL (doc 14), not through the server.

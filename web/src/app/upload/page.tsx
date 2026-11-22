@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { parseBlob } from 'music-metadata';
+import { useRef, useState } from 'react';
 import { Button } from '@/components/Button';
 import { useMe } from '@/components/auth/MeProvider';
 
@@ -16,11 +17,71 @@ export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
   const [artist, setArtist] = useState('');
+  const [album, setAlbum] = useState('');
   const [message, setMessage] = useState('Choose a song to upload.');
   const [busy, setBusy] = useState(false);
+  const [readingTags, setReadingTags] = useState(false);
+  const metadataRequest = useRef(0);
+
+  function limitField(value: string) {
+    return value.trim().slice(0, 120);
+  }
+
+  function titleFromFilename(fileName: string) {
+    return limitField(
+      fileName
+        .replace(/\.[^.]+$/, '')
+        .replace(/^\s*(?:\d{1,3}[\s._-]+|[[(]\d{1,3}[\])][\s._-]*)/, '')
+        .replace(/[\s._-]+\d{1,3}\s*$/, '')
+        .replace(/[._]+/g, ' ')
+        .replace(/\s+/g, ' '),
+    );
+  }
+
+  async function selectFile(selected: File | null) {
+    const request = ++metadataRequest.current;
+    setFile(selected);
+    setArtist('');
+    setAlbum('');
+    setReadingTags(Boolean(selected));
+    if (!selected) {
+      setTitle('');
+      setMessage('Choose a song to upload.');
+      return;
+    }
+
+    setTitle(titleFromFilename(selected.name));
+    setMessage('Reading song tags…');
+    try {
+      const metadata = await parseBlob(selected, { skipCovers: true });
+      if (request !== metadataRequest.current) return;
+      setTitle(limitField(metadata.common.title ?? '') || titleFromFilename(selected.name));
+      setArtist(
+        limitField(
+          metadata.common.artist ||
+            metadata.common.artists
+              ?.map((name) => name.trim())
+              .filter(Boolean)
+              .join(', ') ||
+            '',
+        ),
+      );
+      setAlbum(limitField(metadata.common.album ?? ''));
+      setMessage('Song details loaded where available. Review them before uploading.');
+    } catch {
+      if (request !== metadataRequest.current) return;
+      setMessage('Could not read embedded tags. Check the title and enter the artist manually.');
+    } finally {
+      if (request === metadataRequest.current) setReadingTags(false);
+    }
+  }
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (readingTags) {
+      setMessage('Wait for song tags to finish loading.');
+      return;
+    }
     if (!file) {
       setMessage('Choose an audio file first.');
       return;
@@ -35,6 +96,7 @@ export default function UploadPage() {
           contentType: file.type || 'application/octet-stream',
           title,
           artist,
+          ...(album.trim() ? { album: album.trim() } : {}),
         },
       });
       setMessage('Uploading');
@@ -100,10 +162,21 @@ export default function UploadPage() {
       <p>Audio files up to 50 MB. Your upload will be checked before it becomes playable.</p>
       <form className="upload-form" onSubmit={submit}>
         <label className="field">
+          <span className="field-label">Audio file</span>
+          <input
+            required
+            type="file"
+            accept="audio/*,.mp3,.m4a,.wav,.flac,.ogg"
+            disabled={busy || readingTags}
+            onChange={(event) => void selectFile(event.currentTarget.files?.[0] ?? null)}
+          />
+        </label>
+        <label className="field">
           <span className="field-label">Song title</span>
           <input
             required
             maxLength={120}
+            disabled={readingTags}
             value={title}
             onChange={(event) => setTitle(event.target.value)}
           />
@@ -113,20 +186,21 @@ export default function UploadPage() {
           <input
             required
             maxLength={120}
+            disabled={readingTags}
             value={artist}
             onChange={(event) => setArtist(event.target.value)}
           />
         </label>
         <label className="field">
-          <span className="field-label">Audio file</span>
+          <span className="field-label">Album (optional)</span>
           <input
-            required
-            type="file"
-            accept="audio/*,.mp3,.m4a,.wav,.flac,.ogg"
-            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+            maxLength={120}
+            disabled={readingTags}
+            value={album}
+            onChange={(event) => setAlbum(event.target.value)}
           />
         </label>
-        <Button type="submit" loading={busy}>
+        <Button type="submit" loading={busy} disabled={readingTags}>
           Upload song
         </Button>
       </form>

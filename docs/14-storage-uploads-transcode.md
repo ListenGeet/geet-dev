@@ -46,6 +46,9 @@ Cover sizes 48/96/160/320 are not stored: the browser scales the 600 px image (a
 4. **Process:** the worker produces files, then calls complete. The track becomes `ready`, visible to everyone.
 5. **Failure:** status `failed` with a plain-language `error`; user can Retry (re-queues, up to 3 attempts).
 
+### Metadata before upload
+In the `web` workspace, pin `music-metadata` to exactly `12.3.5` and use its browser `parseBlob(file)` API to read embedded tags locally before upload. Prefill editable title, artist, and album fields from common tags; if title is missing, clean the filename; if artist or album is missing, leave the field available for manual entry. Parsing errors must not block manual entry. This reads file tags only; it is not an online catalogue lookup.
+
 ## The transcode worker (GitHub Actions, public repo)
 Public-repo Actions minutes are free and unlimited on standard runners, which is why the worker lives there. Goal: **upload to ready in about 30 to 60 seconds**.
 
@@ -69,7 +72,7 @@ All calls carry `Authorization: Bearer <WORKER_SECRET>`.
 
 ### Worker steps for one job
 1. Download the source from `sourceUrl` to a temp file.
-2. `ffprobe`: require an audio stream; reject if duration over 15 minutes, no audio, or unsupported. Read tags (title, artist, album) as defaults.
+2. `ffprobe`: require an audio stream; reject if duration is over 15 minutes, there is no audio, or the format is unsupported. Use it for stream and duration validation, not as the source of editable tag defaults.
 3. Encode full: `ffmpeg -i src -vn -map_metadata -1 -c:a aac -b:a 128k -ar 44100 -ac 2 -movflags +faststart full.m4a`
 4. Encode preview: first 40 s with a 2 s fade-out at the end, same codec, faststart.
 5. Cover: use the uploaded cover if given, else the embedded picture; center-crop to square, scale to 600×600, JPEG quality about 4. None found: skip (the app shows the fallback).
