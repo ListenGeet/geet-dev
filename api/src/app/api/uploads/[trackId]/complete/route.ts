@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { storage } from '@/lib/storage';
 import { incomingKey } from '@geet/shared';
 import { dispatchTranscode } from '@/lib/uploads';
+import { preflight } from '@/lib/cors';
 
 export const dynamic = 'force-dynamic';
 type Params = { params: Promise<{ trackId: string }> };
@@ -50,3 +51,7 @@ export const POST = withUser(async (request, { profile }, { params }: Params) =>
   const dispatched = await dispatchTranscode();
   return ok(request, { queued: true, dispatched }, 202);
 });
+
+export function OPTIONS(request: Request) {
+  return preflight(request);
+}
