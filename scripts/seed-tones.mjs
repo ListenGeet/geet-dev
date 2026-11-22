@@ -14,7 +14,7 @@ if (!url || !key) throw new Error('Supabase seed environment is incomplete.');
 const client = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 const bucket = client.storage.from(process.env.STORAGE_BUCKET || 'audio');
 const names = [
-  'Morning Loop',
+  'ਗੀਤ',
   'Soft Signal',
   'Golden Hour',
   'Quiet Lines',
@@ -164,11 +164,12 @@ try {
       title: names[index],
       artist: 'Geet Tone Lab',
       album: 'Generated Tones',
-      language: 'en',
+      language: index === 0 ? 'pa' : 'en',
       genre: 'Ambient',
       status: 'ready',
       duration_ms: 45000,
       waveform,
+      ...(index === 0 ? { translit: 'geet' } : {}),
     };
     const { error: trackError } = await client.from('tracks').insert(track);
     if (trackError) throw new Error(`Track seed failed: ${trackError.message}`);
@@ -193,6 +194,20 @@ try {
       }
       const { error } = await client.from('track_files').insert(rows);
       if (error) throw new Error(`Tone file record failed: ${error.message}`);
+      if (index < 3) {
+        const lines = [
+          { t_ms: 0, line: 'A note finds its way.' },
+          { t_ms: 12_000, line: 'The room grows quiet.' },
+          { t_ms: 24_000, line: 'The rhythm carries on.' },
+          { t_ms: 36_000, line: 'Then the sound fades.' },
+        ];
+        const { error: lyricsError } = await client.from('track_lyrics').insert({
+          track_id: id,
+          plain: lines.map((line) => line.line).join('\n'),
+          synced: lines,
+        });
+        if (lyricsError) throw new Error(`Tone lyrics seed failed: ${lyricsError.message}`);
+      }
     } catch (error) {
       await bucket.remove(files.map((file) => file.path));
       await client.from('tracks').delete().eq('id', id);

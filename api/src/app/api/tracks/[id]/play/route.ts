@@ -1,15 +1,21 @@
 import { authenticate } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { fail, ok } from '@/lib/http';
+import { clientIp, fail, ok } from '@/lib/http';
 import { loadOrCreateProfile } from '@/lib/me';
 import { storage } from '@/lib/storage';
+import { limited } from '@/lib/route';
+import { preflight } from '@/lib/cors';
 
 export const dynamic = 'force-dynamic';
 type Params = { params: Promise<{ id: string }> };
+const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export async function GET(request: Request, { params }: Params) {
   try {
     const { id } = await params;
+    if (!uuid.test(id)) return fail(request, 'not_found', 'That song is not available.');
+    const blocked = await limited(request, `ip:${clientIp(request)}:play`, 120, 60);
+    if (blocked) return blocked;
     const caller = await authenticate(request);
     const { data: track, error } = await db()
       .from('tracks')
@@ -29,6 +35,8 @@ export async function GET(request: Request, { params }: Params) {
       .maybeSingle();
     if (fileError) throw new Error(`play file: ${fileError.message}`);
     if (!file) return fail(request, 'not_found', 'That song is not available.');
+    const { error: countError } = await db().rpc('record_track_play', { p_track: id });
+    if (countError) throw new Error(`play count: ${countError.message}`);
     await db().rpc('record_egress', {
       p_provider: process.env.STORAGE_PROVIDER ?? 'supabase',
       p_bytes: file.size_bytes ?? 0,
@@ -43,4 +51,8 @@ export async function GET(request: Request, { params }: Params) {
     console.error('[api] play error:', error instanceof Error ? error.message : 'unknown');
     return fail(request, 'server_error', 'The song could not be played right now.');
   }
+}
+
+export function OPTIONS(request: Request) {
+  return preflight(request);
 }

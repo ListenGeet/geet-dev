@@ -4,6 +4,7 @@ import { bumpUsage } from '@/lib/repo';
 import { createUpload, mayUpload } from '@/lib/uploads';
 import { preflight } from '@/lib/cors';
 import { db } from '@/lib/db';
+import { romanizeIndic } from '@geet/shared';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,6 +36,7 @@ export const POST = withUser(async (request, { profile }) => {
       title: body.title.trim(),
       artist: body.artist.trim(),
       album: body.album as string | undefined,
+      translit: romanizeIndic(body.title.trim()) ?? undefined,
     });
     await bumpUsage(profile.id, 'uploads');
     return ok(

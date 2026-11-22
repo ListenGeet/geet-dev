@@ -32,7 +32,14 @@ export function mayUpload(profile: ProfileRow): boolean {
 
 export async function createUpload(
   profile: ProfileRow,
-  input: { size: number; contentType: string; title: string; artist: string; album?: string },
+  input: {
+    size: number;
+    contentType: string;
+    title: string;
+    artist: string;
+    album?: string;
+    translit?: string;
+  },
 ) {
   const max = Math.min(Number(process.env.MAX_TRACK_MB ?? 50), 50) * 1024 * 1024;
   if (!Number.isSafeInteger(input.size) || input.size < 1 || input.size > max)
@@ -59,6 +66,7 @@ export async function createUpload(
         title: input.title,
         artist: input.artist,
         album: input.album ?? null,
+        translit: input.translit ?? null,
         status: 'uploading',
       })
       .select('*')

@@ -46,6 +46,9 @@ select t.assert((select count(*) from search_tracks('arijt singh', null, 10, 0))
 select t.assert((select count(*) from search_tracks('hidden', null, 10, 0)) = 0, 'search never returns tracks that are not ready');
 select t.assert((select count(*) from search_tracks('100%', null, 10, 0)) = 0, 'wildcards in the query are escaped');
 select t.assert((select title from popular_tracks(null, 30, 1)) = 'Lover', 'popular_tracks orders by plays');
+select public.record_track_play('00000000-0000-0000-0000-000000000001');
+select t.assert((select plays from tracks where id = '00000000-0000-0000-0000-000000000001') = 6,
+  'record_track_play increments the ready track count atomically');
 
 -- rate limiter.
 select t.assert((select public.rate_limit_hit('ip:1', 3, 60)) and (select public.rate_limit_hit('ip:1', 3, 60))

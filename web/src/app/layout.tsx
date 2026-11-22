@@ -4,6 +4,9 @@ import type { ReactNode } from 'react';
 import { MeProvider } from '@/components/auth/MeProvider';
 import { OnboardingGuard } from '@/components/auth/OnboardingGuard';
 import { RegisterServiceWorker } from '@/components/RegisterServiceWorker';
+import { AppShell } from '@/components/shell/AppShell';
+import { PlayerProvider } from '@/components/player/PlayerProvider';
+import { LocaleProvider } from '@/lib/locale';
 import { isDevSite } from '@/lib/site';
 import { inter, notoDevanagari, notoGurmukhi, outfit } from './fonts';
 import '../styles/globals.css';
@@ -54,8 +57,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           signUpForceRedirectUrl="/onboarding"
         >
           <MeProvider>
-            <OnboardingGuard />
-            {children}
+            <LocaleProvider>
+              <PlayerProvider>
+                <OnboardingGuard />
+                <AppShell>{children}</AppShell>
+              </PlayerProvider>
+            </LocaleProvider>
           </MeProvider>
         </ClerkProvider>
         <RegisterServiceWorker />
