@@ -36,7 +36,7 @@ Desktop overlay: same content in two columns (cover left 420, controls and lyric
 - **Synced lyrics** (when `.lrc` timestamps exist): current line white Outfit 700 22, others `text-3` at 20; auto-scrolls to center the current line; **tap a line to seek**; user scrolling pauses auto-scroll for 4 s.
 - **Plain lyrics:** static text, Inter 18/28, no sync.
 - Scripts render in their own font (Gurmukhi, Devanagari) with the Indic type rules from doc 01.
-- Footer line: "Lyrics added by the uploader." (`text-3`). Lyrics are cached for offline (service worker `geet-data-v1`).
+- Footer identifies the source: "Lyrics from LRCLIB via LyricsLIB.", "Lyrics from Lyrics.ovh.", or "Lyrics added by the uploader." (`text-3`). Lyrics are cached for offline (service worker `geet-data-v1`).
 - Missing lyrics: the Lyrics button is hidden; the panel never shows "No lyrics" on playback.
 
 ## Queue

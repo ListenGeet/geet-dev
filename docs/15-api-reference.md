@@ -46,7 +46,7 @@ Conventions
 | `GET /api/tracks/{id}` | public | One track |
 | `GET /api/tracks/{id}/play` | public | `{ url, expiresAt, preview: bool }`. Guests get the preview URL; signed-in users get full. Records egress. Honors the egress cap |
 | `GET /api/cover/{id}` | public | 302 to signed cover URL, cacheable |
-| `GET /api/lyrics/{id}` | public | Lyrics or `{ lyrics: null }` |
+| `GET /api/lyrics/{id}` | public | `{ lyrics: { plain, synced, source } }` or `{ lyrics: null }`; source is `lrclib`, `lyrics_ovh`, or `uploader` |
 | `GET /api/search?q=&type=all|songs|artists&language=` | public | Search. Returns `{ top, songs, artists }` |
 | `GET /api/artists/{key}` | public | Artist header, popular, all songs |
 | `GET /api/home` | public | Home feed (sections of doc 04), personalized if signed in |

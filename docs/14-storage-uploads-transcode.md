@@ -70,7 +70,7 @@ All calls carry `Authorization: Bearer <WORKER_SECRET>`.
 |---|---|
 | `POST /api/worker/claim` | Atomically claims the next job (`claim_upload_job`, lease 5 min). Returns `{job, track, sourceSha256, sourceUrl, uploads:{full, preview, cover}}` where each upload is a pre-signed PUT URL (20 min). Returns `204` if none |
 | `POST /api/worker/heartbeat` | Extends the lease for long files |
-| `POST /api/worker/complete` | Body: `{jobId, durationMs, waveform:[64 ints], files:{full:{size,codec,bitrate}, preview:{…}, cover:{size}|null}, tags:{title,artist,album}}`. API records `track_files`, deletes `incoming/…`, sets `tracks.status='ready'` |
+| `POST /api/worker/complete` | Body: `{jobId, durationMs, waveform:[64 ints], files:{full:{size,codec,bitrate}, preview:{…}, cover:{size}|null}, tags:{title,artist,album}}`. API records `track_files`, deletes `incoming/…`, sets `tracks.status='ready'`, then performs a best-effort lyrics lookup |
 | `POST /api/worker/fail` | Body `{jobId, error}` with a user-safe message |
 
 ### Worker steps for one job
@@ -96,7 +96,8 @@ The worker is any process that can call the four endpoints and run ffmpeg. It ca
 ## Covers, promos, and lyrics
 - **Cover URL for the app:** `GET /api/cover/{trackId}` returns a `302` to a signed cover URL with `Cache-Control: public, max-age=86400` so the browser and the service worker cache it. The web app rewrites `/api/cover/*` to the API so it stays same-origin for `sw.js` (doc 06).
 - **Promo images:** admin uploads via signed URL to `promos/<id>.jpg`; the promos list endpoint returns signed image URLs valid 3 days, cached 1 hour.
-- **Lyrics:** `GET /api/lyrics/{trackId}` returns `{plain, synced}` or `{lyrics: null}`, public for ready tracks, cached (the service worker keeps a copy).
+- **Lyrics lookup:** once a track is ready, the API uses the `lyrics-lib` package (LyricsLIB) to look up lyrics in LRCLIB by title and artist. If LRCLIB has no match or is unavailable, it tries `GET https://api.lyrics.ovh/v1/{artist}/{title}`. Both lookups are best-effort: no match or provider failure leaves the track ready and preserves any existing lyrics. LyricsLIB returns plain or LRC text; the API normalizes timestamped lines to `{t_ms, line}` and records the source as `lrclib` or `lyrics_ovh` in `track_lyrics.source`.
+- **Lyrics API:** `GET /api/lyrics/{trackId}` returns `{lyrics: {plain, synced, source}}` or `{lyrics: null}`, public for ready tracks, cached (the service worker keeps a copy). `source` is `lrclib`, `lyrics_ovh`, or `uploader` for existing manually supplied lyrics.
 
 ## Egress estimation
 Each time a download URL for audio is issued, `record_egress(provider, file size)` adds to `egress_daily`. This is an estimate (a user may not finish the file, or may seek). It is used for the admin meter and the cap rule in doc 12.

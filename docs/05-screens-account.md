@@ -64,7 +64,7 @@ Allowed by `UPLOAD_MODE` (`admin`, `approved`, `anyone`). If not allowed: page "
 | Genre | Select + "Other" |
 | Search spelling | Optional "Also spelled in English letters" (e.g. "Dil"), helps search |
 | Cover | Optional JPG or PNG up to 2 MB. If empty, use embedded cover art from the audio file; if none is present, the fallback is used |
-| Lyrics | Optional. Plain text, or `.lrc` with timestamps for synced lyrics |
+| Lyrics | Looked up automatically after upload processing. LyricsLIB checks LRCLIB first; Lyrics.ovh is the fallback. A missing result does not fail the upload. |
 | Rights* | Checkbox: "I own this song or have permission to share it on Geet." Required |
 
 Button **Upload** (primary). Terms link under it.
