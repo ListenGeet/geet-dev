@@ -23,7 +23,7 @@ import {
 } from '@phosphor-icons/react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Icon } from '@/components/Icon';
 import { Equalizer } from '@/components/Equalizer';
 import { usePlayer } from './PlayerProvider';
@@ -34,72 +34,34 @@ function timeLabel(seconds: number) {
   return `${Math.floor(safe / 60)}:${String(safe % 60).padStart(2, '0')}`;
 }
 
-function fallbackWaveform(id: string) {
-  let value = 0;
-  for (const char of id) value = (value * 33 + char.charCodeAt(0)) | 0;
-  return Array.from({ length: 64 }, (_, index) => {
-    value = (value * 1664525 + 1013904223 + index) | 0;
-    return 25 + ((value >>> 8) % 65);
-  });
-}
-
-function Waveform({
-  track,
+function ProgressBar({
   currentTime,
   duration,
+  isPreview,
   seek,
 }: {
-  track: Track;
   currentTime: number;
   duration: number;
+  isPreview: boolean;
   seek: (s: number) => void;
 }) {
-  const bars = useMemo(
-    () => (track.waveform?.length === 64 ? track.waveform : fallbackWaveform(track.id)),
-    [track.id, track.waveform],
-  );
-  const root = useRef<HTMLDivElement>(null);
-  const max = duration || 40;
-  const ratio = Math.max(0, Math.min(currentTime / max, 1));
-  const move = (event: React.PointerEvent<HTMLDivElement>) => {
-    const bounds = event.currentTarget.getBoundingClientRect();
-    seek(((event.clientX - bounds.left) / bounds.width) * max);
-  };
+  const max = isPreview ? 40 : duration || 40;
+  const ratio = Math.max(0, Math.min((currentTime / max) * 100, 100));
   return (
-    <div className="waveform-wrap">
-      <div
-        ref={root}
-        className="waveform"
-        role="slider"
-        tabIndex={0}
+    <div className="fullplayer-progress">
+      <input
+        type="range"
         aria-label="Seek through song"
-        aria-valuemin={0}
-        aria-valuemax={Math.round(max)}
-        aria-valuenow={Math.round(currentTime)}
-        onPointerDown={(event) => {
-          event.currentTarget.setPointerCapture(event.pointerId);
-          move(event);
-        }}
-        onPointerMove={(event) => event.buttons === 1 && move(event)}
-        onKeyDown={(event) => {
-          if (event.key === 'ArrowRight') seek(Math.min(max, currentTime + 5));
-          if (event.key === 'ArrowLeft') seek(Math.max(0, currentTime - 5));
-          if (event.key === 'Home') seek(0);
-          if (event.key === 'End') seek(max);
-        }}
-      >
-        {bars.map((height, index) => (
-          <span
-            key={index}
-            className={index / bars.length <= ratio ? 'waveform-bar played' : 'waveform-bar'}
-            style={{ height: `${Math.max(20, Math.min(100, height))}%` }}
-          />
-        ))}
-        {!track.waveform?.length && <span className="sr-only">Waveform is illustrative.</span>}
-      </div>
-      <div className="waveform-times">
+        min="0"
+        max={max}
+        step="0.1"
+        value={Math.min(currentTime, max)}
+        style={{ background: `linear-gradient(to right, #fff ${ratio}%, #4a4a4a ${ratio}%)` }}
+        onChange={(event) => seek(Number(event.target.value))}
+      />
+      <div className="fullplayer-progress-times">
         <span>{timeLabel(currentTime)}</span>
-        <span>{isFinite(max) ? `-${timeLabel(max - currentTime)}` : '--:--'}</span>
+        <span>{timeLabel(max)}</span>
       </div>
     </div>
   );
@@ -345,6 +307,13 @@ export function PlayerChrome() {
       {player.fullOpen && (
         <div
           className="fullplayer-backdrop"
+          style={
+            {
+              '--player-artwork': track.coverUrl
+                ? `url(${JSON.stringify(track.coverUrl)})`
+                : 'none',
+            } as React.CSSProperties
+          }
           role="presentation"
           onClick={() => player.showFull(false)}
         >
@@ -436,10 +405,10 @@ export function PlayerChrome() {
                       <Icon icon={Heart} />
                     </button>
                   </div>
-                  <Waveform
-                    track={track}
+                  <ProgressBar
                     currentTime={player.currentTime}
                     duration={max}
+                    isPreview={player.isPreview}
                     seek={player.seek}
                   />
                   <Transport size="large" />
@@ -465,31 +434,6 @@ export function PlayerChrome() {
                   <div className="fullplayer-discovery">
                     <LyricsPreview />
                     <UpNext />
-                  </div>
-                  <div className="fullplayer-actions">
-                    <DisabledAction label="Download">
-                      <Icon icon={DownloadSimple} />
-                    </DisabledAction>
-                    <button
-                      className="btn-icon"
-                      aria-label="Open lyrics"
-                      onClick={() => void player.showLyrics()}
-                    >
-                      <Icon icon={MicrophoneStage} />
-                    </button>
-                    <DisabledAction label="Jam">
-                      <Icon icon={UsersThree} />
-                    </DisabledAction>
-                    <button
-                      className="btn-icon"
-                      aria-label="Open queue"
-                      onClick={() => player.showQueue(true)}
-                    >
-                      <Icon icon={Queue} />
-                    </button>
-                    <DisabledAction label="Share">
-                      <Icon icon={PlusCircle} />
-                    </DisabledAction>
                   </div>
                   {sleepMinutes !== null && sleepMinutes >= 0 && (
                     <p className="sleep-note">Sleep timer · {sleepMinutes} min</p>
@@ -579,7 +523,7 @@ function LyricsPreview() {
 
 function UpNext() {
   const player = usePlayer();
-  const next = player.queue.slice(player.index + 1, player.index + 3);
+  const next = player.queue.slice(player.index + 1, player.index + 2);
   return (
     <section className="fullplayer-upnext" aria-label="Up next">
       <span className="discovery-label">Up next</span>
@@ -642,6 +586,7 @@ function LyricsView() {
             <button
               ref={index === activeLine ? activeLineRef : null}
               className={`lyric-line ${index === activeLine ? 'lyric-active' : ''}`}
+              aria-current={index === activeLine ? 'true' : undefined}
               key={`${line.t_ms}-${index}`}
               onClick={() => player.seek(line.t_ms / 1000)}
             >
