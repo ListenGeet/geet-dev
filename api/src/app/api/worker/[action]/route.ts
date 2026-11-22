@@ -23,7 +23,10 @@ export async function POST(request: Request, { params }: Params) {
     });
     if (error) throw new Error(`worker claim: ${error.message}`);
     const job = Array.isArray(jobs) ? jobs[0] : jobs;
-    if (!job) return new Response(null, { status: 204 });
+    // A function returning a composite row can serialize "no row" as an
+    // object whose fields are all null. Treat that as an empty queue too.
+    if (!job || !job.id || !job.track_id)
+      return new Response(null, { status: 204 });
     const { data: track, error: trackError } = await db()
       .from('tracks')
       .select('id,uploader_id,title,artist,album')
