@@ -7,12 +7,17 @@ import { deliveryFor, fromFor, replyToFor, parseAllowlist } from './send';
 import { templates } from './templates.generated';
 
 const root = join(__dirname, '..', '..', '..', '..');
+const normalized = (value: string) => value.replace(/\r\n/g, '\n');
 
 describe('templates', () => {
   it('the generated bundle matches emails/templates', () => {
     for (const [name, t] of Object.entries(templates)) {
-      expect(t.html).toBe(readFileSync(join(root, 'emails/templates', `${name}.html`), 'utf8'));
-      expect(t.text).toBe(readFileSync(join(root, 'emails/templates', `${name}.txt`), 'utf8'));
+      expect(t.html).toBe(
+        normalized(readFileSync(join(root, 'emails/templates', `${name}.html`), 'utf8')),
+      );
+      expect(t.text).toBe(
+        normalized(readFileSync(join(root, 'emails/templates', `${name}.txt`), 'utf8')),
+      );
     }
   });
   it('verification-code fills every placeholder in both parts', () => {
