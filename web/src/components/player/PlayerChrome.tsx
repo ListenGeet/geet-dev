@@ -7,6 +7,7 @@ import {
   DotsThree,
   Heart,
   MicrophoneStage,
+  Moon,
   Pause,
   Play,
   PlusCircle,
@@ -34,6 +35,42 @@ function timeLabel(seconds: number) {
   return `${Math.floor(safe / 60)}:${String(safe % 60).padStart(2, '0')}`;
 }
 
+function fillStyle(value: number, max: number) {
+  const ratio = Math.max(0, Math.min((value / (max || 1)) * 100, 100));
+  return { background: `linear-gradient(to right, #fff ${ratio}%, #4a4a4a ${ratio}%)` };
+}
+
+function Skip10({ direction }: { direction: 'back' | 'forward' }) {
+  const back = direction === 'back';
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d={back ? 'M7.05 7.05A7 7 0 1 1 5 12' : 'M16.95 7.05A7 7 0 1 0 19 12'} />
+      <path d={back ? 'M7.5 3.5v3.6H4' : 'M16.5 3.5v3.6H20'} />
+      <text
+        x="12"
+        y="15.2"
+        textAnchor="middle"
+        fontSize="7"
+        fontWeight="700"
+        fill="currentColor"
+        stroke="none"
+      >
+        10
+      </text>
+    </svg>
+  );
+}
+
 function ProgressBar({
   currentTime,
   duration,
@@ -46,7 +83,6 @@ function ProgressBar({
   seek: (s: number) => void;
 }) {
   const max = isPreview ? 40 : duration || 40;
-  const ratio = Math.max(0, Math.min((currentTime / max) * 100, 100));
   return (
     <div className="fullplayer-progress">
       <input
@@ -56,7 +92,7 @@ function ProgressBar({
         max={max}
         step="0.1"
         value={Math.min(currentTime, max)}
-        style={{ background: `linear-gradient(to right, #fff ${ratio}%, #4a4a4a ${ratio}%)` }}
+        style={fillStyle(currentTime, max)}
         onChange={(event) => seek(Number(event.target.value))}
       />
       <div className="fullplayer-progress-times">
@@ -95,6 +131,15 @@ function Transport({ size = 'normal' }: { size?: 'normal' | 'large' }) {
       >
         <Icon icon={Shuffle} />
       </button>
+      {size === 'large' && (
+        <button
+          className="btn-icon"
+          aria-label="Back 10 seconds"
+          onClick={() => player.seek(Math.max(0, player.currentTime - 10))}
+        >
+          <Skip10 direction="back" />
+        </button>
+      )}
       <button className="btn-icon" aria-label="Previous" onClick={() => void player.previous()}>
         <Icon icon={SkipBack} />
       </button>
@@ -112,6 +157,15 @@ function Transport({ size = 'normal' }: { size?: 'normal' | 'large' }) {
       <button className="btn-icon" aria-label="Next" onClick={() => void player.next()}>
         <Icon icon={SkipForward} />
       </button>
+      {size === 'large' && (
+        <button
+          className="btn-icon"
+          aria-label="Forward 10 seconds"
+          onClick={() => player.seek(player.currentTime + 10)}
+        >
+          <Skip10 direction="forward" />
+        </button>
+      )}
       <button
         className={`btn-icon ${player.repeat !== 'off' ? 'is-on' : ''}`}
         aria-label={`Repeat ${player.repeat}`}
@@ -135,6 +189,48 @@ function DisabledAction({ children, label }: { children: React.ReactNode; label:
     >
       {children}
     </button>
+  );
+}
+
+function SleepTimerButton({
+  sleepMinutes,
+  setSleepMinutes,
+}: {
+  sleepMinutes: number | null;
+  setSleepMinutes: (value: number | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const choose = (value: number | null) => {
+    setSleepMinutes(value);
+    setOpen(false);
+  };
+  return (
+    <div className="player-menu-wrap">
+      <button
+        className={`btn-icon ${sleepMinutes !== null ? 'is-on' : ''}`}
+        aria-label="Sleep timer"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+      >
+        <Icon icon={Moon} />
+      </button>
+      {open && (
+        <div className="menu player-menu">
+          <strong>Sleep timer</strong>
+          {[15, 30, 45, 60].map((minutes) => (
+            <button className="menu-item" key={minutes} onClick={() => choose(minutes)}>
+              {minutes} min
+            </button>
+          ))}
+          <button className="menu-item" onClick={() => choose(-1)}>
+            End of this song
+          </button>
+          <button className="menu-item" onClick={() => choose(null)}>
+            Off
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -333,57 +429,46 @@ export function PlayerChrome() {
                 <Icon icon={CaretDown} />
               </button>
               <div>
-                <small>Playing from</small>
-                <strong>{player.source}</strong>
+                <small>Now playing</small>
               </div>
-              <div className="player-menu-wrap">
-                <button
-                  className="btn-icon"
-                  aria-label="Player menu"
-                  aria-expanded={menuOpen}
-                  onClick={() => setMenuOpen((value) => !value)}
-                >
-                  <Icon icon={DotsThree} />
-                </button>
-                {menuOpen && (
-                  <div className="menu player-menu">
-                    <strong>Sleep timer</strong>
-                    {[15, 30, 45, 60].map((minutes) => (
+              <div className="fullplayer-top-actions">
+                <SleepTimerButton sleepMinutes={sleepMinutes} setSleepMinutes={setSleepMinutes} />
+                <div className="player-menu-wrap">
+                  <button
+                    className="btn-icon"
+                    aria-label="Player menu"
+                    aria-expanded={menuOpen}
+                    onClick={() => setMenuOpen((value) => !value)}
+                  >
+                    <Icon icon={DotsThree} />
+                  </button>
+                  {menuOpen && (
+                    <div className="menu player-menu">
                       <button
                         className="menu-item"
-                        key={minutes}
                         onClick={() => {
-                          setSleepMinutes(minutes);
+                          player.showQueue(true);
                           setMenuOpen(false);
                         }}
                       >
-                        {minutes} min
+                        Queue
                       </button>
-                    ))}
-                    <button
-                      className="menu-item"
-                      onClick={() => {
-                        setSleepMinutes(null);
-                        setMenuOpen(false);
-                      }}
-                    >
-                      Off
-                    </button>
-                    <button
-                      className="menu-item"
-                      onClick={() => {
-                        setSleepMinutes(-1);
-                        setMenuOpen(false);
-                      }}
-                    >
-                      End of this song
-                    </button>
-                  </div>
-                )}
+                      <button
+                        className="menu-item"
+                        onClick={() => {
+                          void player.showLyrics();
+                          setMenuOpen(false);
+                        }}
+                      >
+                        Lyrics
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </header>
             {player.lyricsOpen && player.lyrics ? (
-              <LyricsView />
+              <LyricsView sleepMinutes={sleepMinutes} setSleepMinutes={setSleepMinutes} />
             ) : (
               <div className="fullplayer-body">
                 <div className="fullplayer-art">
@@ -430,6 +515,13 @@ export function PlayerChrome() {
                       onChange={(event) => player.setVolume(Number(event.target.value))}
                     />
                     <span>{Math.round(player.volume * 100)}%</span>
+                    <button
+                      className="btn-icon"
+                      aria-label="Lyrics"
+                      onClick={() => void player.showLyrics()}
+                    >
+                      <Icon icon={MicrophoneStage} />
+                    </button>
                   </div>
                   <div className="fullplayer-discovery">
                     <LyricsPreview />
@@ -507,8 +599,18 @@ function QueueTrack({
 
 function LyricsPreview() {
   const player = usePlayer();
-  const lines = player.lyrics?.synced?.length
-    ? player.lyrics.synced.slice(0, 3).map(({ line }) => line)
+  const synced = player.lyrics?.synced;
+  const active = synced?.length
+    ? Math.max(
+        0,
+        synced.reduce(
+          (found, item, index) => (item.t_ms <= player.currentTime * 1000 ? index : found),
+          -1,
+        ),
+      )
+    : 0;
+  const lines = synced?.length
+    ? synced.slice(active, active + 3).map(({ line }) => line)
     : (player.lyrics?.plain?.split('\n').filter(Boolean).slice(0, 3) ?? []);
   return (
     <button className="lyrics-preview" onClick={() => void player.showLyrics()}>
@@ -516,7 +618,7 @@ function LyricsPreview() {
       <span className="lyrics-preview-lines">
         {lines.length ? lines.map((line, index) => <span key={index}>{line}</span>) : 'Find lyrics'}
       </span>
-      <span className="lyrics-preview-link">Tap to open full lyrics</span>
+      <span className="lyrics-preview-link">Tap for full lyrics</span>
     </button>
   );
 }
@@ -548,7 +650,13 @@ function UpNext() {
   );
 }
 
-function LyricsView() {
+function LyricsView({
+  sleepMinutes,
+  setSleepMinutes,
+}: {
+  sleepMinutes: number | null;
+  setSleepMinutes: (value: number | null) => void;
+}) {
   const player = usePlayer();
   const activeLineRef = useRef<HTMLButtonElement>(null);
   const activeLine =
@@ -566,7 +674,11 @@ function LyricsView() {
   return (
     <div className="lyrics-view">
       <header className="lyrics-topbar">
-        <button className="btn-icon" aria-label="Back to player" onClick={player.hideLyrics}>
+        <button
+          className="btn-icon lyrics-back"
+          aria-label="Back to player"
+          onClick={player.hideLyrics}
+        >
           <CaretDown size={24} />
         </button>
         {track ? (
@@ -578,8 +690,10 @@ function LyricsView() {
             </span>
           </>
         ) : null}
-        <span className="lyrics-topbar-label">Lyrics</span>
       </header>
+      <div className="lyrics-side">
+        <SleepTimerButton sleepMinutes={sleepMinutes} setSleepMinutes={setSleepMinutes} />
+      </div>
       <div className="lyrics-scroll">
         {player.lyrics?.synced?.length ? (
           player.lyrics.synced.map((line, index) => (
@@ -614,17 +728,18 @@ function LyricsView() {
             max={seekMax || 40}
             step="0.1"
             value={Math.min(player.currentTime, seekMax || 40)}
+            style={fillStyle(player.currentTime, seekMax || 40)}
             onChange={(event) => player.seek(Number(event.target.value))}
           />
           <span>{timeLabel(seekMax || 40)}</span>
         </div>
-        <small>
-          {player.lyrics?.source === 'lrclib'
-            ? 'Lyrics from LRCLIB via LyricsLIB.'
-            : player.lyrics?.source === 'lyrics_ovh'
-              ? 'Lyrics from Lyrics.ovh.'
-              : 'Lyrics added by the uploader.'}
-        </small>
+        {player.lyrics?.source === 'lrclib' || player.lyrics?.source === 'lyrics_ovh' ? (
+          <small>
+            {player.lyrics.source === 'lrclib'
+              ? 'Lyrics from LRCLIB via LyricsLIB.'
+              : 'Lyrics from Lyrics.ovh.'}
+          </small>
+        ) : null}
       </footer>
     </div>
   );
