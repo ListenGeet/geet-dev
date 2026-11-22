@@ -3,3 +3,4 @@ export * from './cors';
 export * from './tokens';
 export * from './headers';
 export * from './profile';
+export * from './storage';
