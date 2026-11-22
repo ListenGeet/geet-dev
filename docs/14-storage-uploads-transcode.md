@@ -85,9 +85,9 @@ All calls carry `Authorization: Bearer <WORKER_SECRET>`.
 
 ### Security of the worker
 - Secrets: only `WORKER_SECRET` and the API base URL are stored as GitHub Actions secrets in the repo. They are not exposed to workflows triggered by forks or pull requests. The transcode workflow triggers only on `repository_dispatch`, `schedule`, and `workflow_dispatch`, never on `pull_request`.
-- The workflow is skipped on forks: `if: ${{ vars.RUN_SCHEDULED == 'true' }}` (the variable is set only in the real repo).
+- Scheduled runs are gated by `RUN_SCHEDULED=true`; repository dispatches and manual runs are allowed without that variable, so uploads can start processing immediately.
 - Untrusted input: media files are processed by ffmpeg in a throwaway runner VM, which is the isolation boundary. Do not log metadata strings verbatim; strip all metadata from outputs.
-- `GH_DISPATCH_TOKEN` is a fine-grained token with only "Actions: write" on this one repository, stored only in the API's Vercel env.
+- `GH_DISPATCH_TOKEN` is a fine-grained token with **Contents: write** on this one repository (required by GitHub's create repository dispatch endpoint), stored only in the API's Vercel env.
 - The `claim` endpoint rejects wrong secrets in constant time and is rate limited.
 
 ### If you outgrow GitHub Actions

@@ -33,7 +33,7 @@
 Your original comment said "Keep this repository PRIVATE: the artifact contains your catalog data." You now want the repo public. On a public repo, workflow artifacts can be downloaded by any signed-in GitHub user, so an unencrypted export would be public. The new workflow encrypts it with `BACKUP_PASSPHRASE` (symmetric, AES-256). To restore: `gpg --decrypt geet-backup.tgz.gpg | tar xz`. Keep the passphrase in your password manager as well as in GitHub.
 
 ### Forks must not run your jobs
-Every scheduled or secret-using job has `if: ${{ vars.RUN_SCHEDULED == 'true' }}`. Set the repository variable `RUN_SCHEDULED=true` **only in your real repo**. Forks do not inherit variables, so their copies of these workflows skip silently.
+Scheduled runs are gated by `RUN_SCHEDULED=true`; repository dispatches and manual runs are not. Set the repository variable `RUN_SCHEDULED=true` **only in your real repo** to enable scheduled jobs. Forks do not inherit variables.
 
 ## GitHub setup checklist
 1. Create the public repo. Settings → Actions → General: **Workflow permissions: Read repository contents** (not read/write). **Require approval for all outside collaborators** for workflow runs from forks.
@@ -41,7 +41,7 @@ Every scheduled or secret-using job has `if: ${{ vars.RUN_SCHEDULED == 'true' }}
    - production: `API_URL` (`https://api.listengeet.com`), `WORKER_SECRET`, `CRON_SECRET`, `APP_URL` (same as `API_URL`), `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `BACKUP_PASSPHRASE`.
    - dev: `API_URL` (`https://dev-api.listengeet.com`), `WORKER_SECRET`, `CRON_SECRET`, `APP_URL`.
 3. Settings → Secrets and variables → Actions → Variables: `RUN_SCHEDULED = true`.
-4. Create a **fine-grained personal access token** limited to this repository with only **Actions: Read and write** (needed for `repository_dispatch`). Put it in the **API's** Vercel env as `GH_DISPATCH_TOKEN`, with `GH_REPO=owner/name`. Never in the repo.
+4. Create a **fine-grained personal access token** limited to this repository with **Contents: Read and write** (needed for `repository_dispatch`). Put it in the **API's** Vercel env as `GH_DISPATCH_TOKEN`, with `GH_REPO=owner/name`. Never in the repo.
 5. Settings → Code security: enable **Dependabot alerts**, **secret scanning**, and **push protection** (free on public repos). Enable **private vulnerability reporting**.
 6. Branch protection on `main`: require CI to pass, require a pull request, no force pushes.
 7. Vercel: connect the repo to two projects (web, api). Set production branch `main`; assign the `dev` branch to the dev domains. **Turn off** "Automatically expose system environment variables" if unneeded, and never put production secrets into Preview environment variables that fork PRs could reach (Vercel does not build fork PRs with secrets by default; keep it that way).

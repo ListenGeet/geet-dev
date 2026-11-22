@@ -129,8 +129,15 @@ export default function UploadPage() {
         xhr.onerror = () => reject(new Error('The upload connection was interrupted.'));
         xhr.send(file);
       });
-      await api(`/api/uploads/${created.trackId}/complete`, { method: 'POST' });
-      setMessage('Queued');
+      const completion = await api<{ dispatched?: boolean }>(
+        `/api/uploads/${created.trackId}/complete`,
+        { method: 'POST' },
+      );
+      setMessage(
+        completion.dispatched === false
+          ? 'Queued, but the worker could not be started. Check the API GitHub dispatch settings.'
+          : 'Queued',
+      );
       for (let attempt = 0; attempt < 120; attempt++) {
         await new Promise((resolve) => setTimeout(resolve, 2000));
         const result = await api<{ status: string; error?: string }>(
@@ -150,7 +157,9 @@ export default function UploadPage() {
               : result.status === 'failed'
                 ? `Failed · ${result.error ?? 'Try again.'}`
                 : result.status === 'queued'
-                  ? 'Queued'
+                  ? completion.dispatched === false
+                    ? 'Queued · worker dispatch failed; check GitHub Actions settings'
+                    : 'Queued'
                   : 'Uploading',
         );
         if (result.status === 'ready' || result.status === 'failed') break;

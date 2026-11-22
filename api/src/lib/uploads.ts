@@ -86,21 +86,35 @@ export async function createUpload(
 export async function dispatchTranscode() {
   const token = process.env.GH_DISPATCH_TOKEN;
   const repo = process.env.GH_REPO;
-  if (!token || !repo || !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo)) return false;
-  const response = await fetch(`https://api.github.com/repos/${repo}/dispatches`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: 'application/vnd.github+json',
-      'X-GitHub-Api-Version': '2022-11-28',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      event_type: 'transcode',
-      client_payload: { env: process.env.APP_ENV === 'production' ? 'production' : 'dev' },
-    }),
-  });
-  return response.status === 204;
+  if (!token || !repo || !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo)) {
+    console.error('[uploads] transcode dispatch not configured', {
+      missingToken: !token,
+      invalidOrMissingRepo: !repo || !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo),
+    });
+    return false;
+  }
+  try {
+    const response = await fetch(`https://api.github.com/repos/${repo}/dispatches`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        event_type: 'transcode',
+        client_payload: { env: process.env.APP_ENV === 'production' ? 'production' : 'dev' },
+      }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (response.status !== 204)
+      console.error('[uploads] transcode dispatch rejected by GitHub', { status: response.status });
+    return response.status === 204;
+  } catch {
+    console.error('[uploads] transcode dispatch request failed');
+    return false;
+  }
 }
 
 export async function deleteTrack(track: UploadTrack) {
