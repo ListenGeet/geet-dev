@@ -416,57 +416,86 @@ export function PlayerChrome() {
             {player.lyricsOpen && player.lyrics ? (
               <LyricsView />
             ) : (
-              <>
-                <Cover track={track} size={420} />
-                <div className="fullplayer-title">
-                  <div>
-                    <h2>{track.title}</h2>
-                    <Link href={`/artist/${encodeURIComponent(track.artist)}`}>{track.artist}</Link>
+              <div className="fullplayer-body">
+                <div className="fullplayer-art">
+                  <Cover track={track} size={420} />
+                </div>
+                <div className="fullplayer-info">
+                  <div className="fullplayer-title">
+                    <div>
+                      <h2>{track.title}</h2>
+                      <Link href={`/artist/${encodeURIComponent(track.artist)}`}>
+                        {track.artist}
+                      </Link>
+                    </div>
+                    <button
+                      className="btn-icon player-gated"
+                      aria-label="Favourite"
+                      onClick={() => player.openGate('favourite')}
+                    >
+                      <Icon icon={Heart} />
+                    </button>
                   </div>
-                  <button
-                    className="btn-icon player-gated"
-                    aria-label="Favourite"
-                    onClick={() => player.closeGate()}
-                  >
-                    <Icon icon={Heart} />
-                  </button>
+                  <Waveform
+                    track={track}
+                    currentTime={player.currentTime}
+                    duration={max}
+                    seek={player.seek}
+                  />
+                  <Transport size="large" />
+                  <div className="fullplayer-volume">
+                    <button
+                      className="btn-icon"
+                      aria-label={player.muted ? 'Unmute' : 'Mute'}
+                      onClick={() => player.setVolume(player.muted ? 1 : 0)}
+                    >
+                      <Icon icon={player.muted ? SpeakerX : SpeakerHigh} />
+                    </button>
+                    <input
+                      aria-label="Volume"
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      value={player.volume}
+                      onChange={(event) => player.setVolume(Number(event.target.value))}
+                    />
+                    <span>{Math.round(player.volume * 100)}%</span>
+                  </div>
+                  <div className="fullplayer-discovery">
+                    <LyricsPreview />
+                    <UpNext />
+                  </div>
+                  <div className="fullplayer-actions">
+                    <DisabledAction label="Download">
+                      <Icon icon={DownloadSimple} />
+                    </DisabledAction>
+                    <button
+                      className="btn-icon"
+                      aria-label="Open lyrics"
+                      onClick={() => void player.showLyrics()}
+                    >
+                      <Icon icon={MicrophoneStage} />
+                    </button>
+                    <DisabledAction label="Jam">
+                      <Icon icon={UsersThree} />
+                    </DisabledAction>
+                    <button
+                      className="btn-icon"
+                      aria-label="Open queue"
+                      onClick={() => player.showQueue(true)}
+                    >
+                      <Icon icon={Queue} />
+                    </button>
+                    <DisabledAction label="Share">
+                      <Icon icon={PlusCircle} />
+                    </DisabledAction>
+                  </div>
+                  {sleepMinutes !== null && sleepMinutes >= 0 && (
+                    <p className="sleep-note">Sleep timer · {sleepMinutes} min</p>
+                  )}
                 </div>
-                <Waveform
-                  track={track}
-                  currentTime={player.currentTime}
-                  duration={max}
-                  seek={player.seek}
-                />
-                <Transport size="large" />
-                <div className="fullplayer-actions">
-                  <DisabledAction label="Download">
-                    <Icon icon={DownloadSimple} />
-                  </DisabledAction>
-                  <button
-                    className="btn-icon"
-                    aria-label="Lyrics"
-                    onClick={() => void player.showLyrics()}
-                  >
-                    <Icon icon={MicrophoneStage} />
-                  </button>
-                  <DisabledAction label="Jam">
-                    <Icon icon={UsersThree} />
-                  </DisabledAction>
-                  <button
-                    className="btn-icon"
-                    aria-label="Queue"
-                    onClick={() => player.showQueue(true)}
-                  >
-                    <Icon icon={Queue} />
-                  </button>
-                  <DisabledAction label="Share">
-                    <Icon icon={PlusCircle} />
-                  </DisabledAction>
-                </div>
-                {sleepMinutes !== null && sleepMinutes >= 0 && (
-                  <p className="sleep-note">Sleep timer · {sleepMinutes} min</p>
-                )}
-              </>
+              </div>
             )}
           </section>
         </div>
@@ -532,41 +561,126 @@ function QueueTrack({
   );
 }
 
+function LyricsPreview() {
+  const player = usePlayer();
+  const lines = player.lyrics?.synced?.length
+    ? player.lyrics.synced.slice(0, 3).map(({ line }) => line)
+    : (player.lyrics?.plain?.split('\n').filter(Boolean).slice(0, 3) ?? []);
+  return (
+    <button className="lyrics-preview" onClick={() => void player.showLyrics()}>
+      <span className="discovery-label">Lyrics</span>
+      <span className="lyrics-preview-lines">
+        {lines.length ? lines.map((line, index) => <span key={index}>{line}</span>) : 'Find lyrics'}
+      </span>
+      <span className="lyrics-preview-link">Tap to open full lyrics</span>
+    </button>
+  );
+}
+
+function UpNext() {
+  const player = usePlayer();
+  const next = player.queue.slice(player.index + 1, player.index + 3);
+  return (
+    <section className="fullplayer-upnext" aria-label="Up next">
+      <span className="discovery-label">Up next</span>
+      {next.length ? (
+        next.map((track) => (
+          <button
+            className="upnext-track"
+            key={track.id}
+            onClick={() => void player.playTrack(track, player.queue, player.source)}
+          >
+            <Cover track={track} size={40} />
+            <span>
+              <strong>{track.title}</strong>
+              <small>{track.artist}</small>
+            </span>
+          </button>
+        ))
+      ) : (
+        <p className="upnext-empty">No more songs in the queue.</p>
+      )}
+    </section>
+  );
+}
+
 function LyricsView() {
   const player = usePlayer();
+  const activeLineRef = useRef<HTMLButtonElement>(null);
   const activeLine =
     player.lyrics?.synced?.reduce(
       (active, item, index) => (item.t_ms <= player.currentTime * 1000 ? index : active),
       -1,
     ) ?? -1;
+  const track = player.track;
+  const seekMax = player.isPreview ? 40 : player.duration || (track?.durationMs ?? 0) / 1000;
+
+  useEffect(() => {
+    activeLineRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+  }, [activeLine]);
+
   return (
     <div className="lyrics-view">
-      <header>
+      <header className="lyrics-topbar">
         <button className="btn-icon" aria-label="Back to player" onClick={player.hideLyrics}>
           <CaretDown size={24} />
         </button>
-        <h2>Lyrics</h2>
+        {track ? (
+          <>
+            <Cover track={track} size={40} />
+            <span className="lyrics-track-meta">
+              <strong>{track.title}</strong>
+              <small>{track.artist}</small>
+            </span>
+          </>
+        ) : null}
+        <span className="lyrics-topbar-label">Lyrics</span>
       </header>
-      {player.lyrics?.synced?.length ? (
-        player.lyrics.synced.map((line, index) => (
-          <button
-            className={`lyric-line ${index === activeLine ? 'lyric-active' : ''}`}
-            key={`${line.t_ms}-${index}`}
-            onClick={() => player.seek(line.t_ms / 1000)}
-          >
-            {line.line}
-          </button>
-        ))
-      ) : (
-        <p className="plain-lyrics">{player.lyrics?.plain}</p>
-      )}
-      <small>
-        {player.lyrics?.source === 'lrclib'
-          ? 'Lyrics from LRCLIB via LyricsLIB.'
-          : player.lyrics?.source === 'lyrics_ovh'
-            ? 'Lyrics from Lyrics.ovh.'
-            : 'Lyrics added by the uploader.'}
-      </small>
+      <div className="lyrics-scroll">
+        {player.lyrics?.synced?.length ? (
+          player.lyrics.synced.map((line, index) => (
+            <button
+              ref={index === activeLine ? activeLineRef : null}
+              className={`lyric-line ${index === activeLine ? 'lyric-active' : ''}`}
+              key={`${line.t_ms}-${index}`}
+              onClick={() => player.seek(line.t_ms / 1000)}
+            >
+              {line.line}
+            </button>
+          ))
+        ) : (
+          <p className="plain-lyrics">{player.lyrics?.plain}</p>
+        )}
+      </div>
+      <footer className="lyrics-footer">
+        <button
+          className="lyrics-play"
+          aria-label={player.isPlaying ? 'Pause' : 'Play'}
+          onClick={() => void player.toggle()}
+        >
+          <Icon icon={player.isPlaying ? Pause : Play} size={20} />
+        </button>
+        <div className="lyrics-scrub">
+          <span>{timeLabel(player.currentTime)}</span>
+          <input
+            type="range"
+            aria-label="Seek through song"
+            min="0"
+            max={seekMax || 40}
+            step="0.1"
+            value={Math.min(player.currentTime, seekMax || 40)}
+            onChange={(event) => player.seek(Number(event.target.value))}
+          />
+          <span>{timeLabel(seekMax || 40)}</span>
+        </div>
+        <small>
+          {player.lyrics?.source === 'lrclib'
+            ? 'Lyrics from LRCLIB via LyricsLIB.'
+            : player.lyrics?.source === 'lyrics_ovh'
+              ? 'Lyrics from Lyrics.ovh.'
+              : 'Lyrics added by the uploader.'}
+        </small>
+      </footer>
     </div>
   );
 }
