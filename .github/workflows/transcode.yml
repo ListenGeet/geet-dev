@@ -5,7 +5,7 @@ name: transcode
 #   (POST /repos/OWNER/REPO/dispatches with {"event_type":"transcode","client_payload":{"env":"production"}}).
 # Safety net: every 15 minutes (also recovers expired job leases).
 # Needs, per GitHub Environment (production, dev): secrets API_URL and WORKER_SECRET.
-# RUN_SCHEDULED gates scheduled runs only; dispatches and manual runs must work without it.
+# RUN_SCHEDULED is set only in the real repository, so forks skip every trigger.
 on:
   repository_dispatch:
     types: [transcode]
@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   drain:
-    if: ${{ github.event_name != 'schedule' || vars.RUN_SCHEDULED == 'true' }}
+    if: ${{ vars.RUN_SCHEDULED == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 12
     strategy:
