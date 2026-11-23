@@ -101,7 +101,7 @@ The worker is any process that can call the four endpoints and run ffmpeg. It ca
 
 ### Backfill timestamps for existing LRCLIB lyrics
 
-Existing rows with `source='lrclib'` and `synced is null` are not refreshed during playback. After deploying the lyrics lookup fix, run the root `lyrics:backfill` command from a trusted machine with `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` set. It reports the number of eligible rows without writing by default; add `--apply` to look up timestamped LRCLIB lyrics and update only each row's `synced` field. Rows with no timestamped LRCLIB result, including plain-only Lyrics.ovh or uploader lyrics, remain unchanged.
+Existing rows with `source='lrclib'` and `synced is null` are not refreshed during playback, and ready tracks without a lyrics row are not looked up again automatically. After deploying the lyrics lookup fix, run the root `lyrics:backfill` command from a trusted machine with `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` set. It reports eligible tracks without writing by default; add `--apply` to look up lyrics, update timestamps for existing LRCLIB rows, and create rows for tracks with no lyrics row when a provider has a match. Tracks with no provider match remain unchanged.
 
 ## Egress estimation
 Each time a download URL for audio is issued, `record_egress(provider, file size)` adds to `egress_daily`. This is an estimate (a user may not finish the file, or may seek). It is used for the admin meter and the cap rule in doc 12.
