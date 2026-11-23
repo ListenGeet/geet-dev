@@ -8,6 +8,7 @@ const isDev = process.env.NODE_ENV !== 'production';
 const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '');
 
 const config: NextConfig = {
+  distDir: process.env.GEET_AUDIT_DIST_DIR ?? '.next',
   reactStrictMode: true,
   poweredByHeader: false,
   transpilePackages: ['@geet/shared'],
@@ -33,6 +34,7 @@ const config: NextConfig = {
     return [
       { source: '/api/cover/:id', destination: `${apiUrl}/api/cover/:id` },
       { source: '/api/lyrics/:id', destination: `${apiUrl}/api/lyrics/:id` },
+      { source: '/api/:path*', destination: `${apiUrl}/api/:path*` },
     ];
   },
 };

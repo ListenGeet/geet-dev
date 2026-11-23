@@ -11,24 +11,25 @@ export function CoverCard({
   track,
   list,
   source = 'Home',
+  priority = false,
 }: {
   track: Track;
   list: Track[];
   source?: string;
+  priority?: boolean;
 }) {
   const player = usePlayer();
   return (
-    <button
-      className="cover-card"
-      onClick={() => void player.playTrack(track, list, source)}
-      aria-label={`Play ${track.title} by ${track.artist}`}
-    >
+    <button className="cover-card" onClick={() => void player.playTrack(track, list, source)}>
       <span className="cover-card-image">
         <Image
           src={track.coverUrl ?? '/illustrations/cover-fallback.svg'}
           alt=""
           width={180}
           height={180}
+          sizes="(max-width: 767px) 148px, 180px"
+          loading={priority ? 'eager' : 'lazy'}
+          fetchPriority={priority ? 'high' : 'auto'}
           unoptimized
           onError={(event) => {
             event.currentTarget.src = '/illustrations/cover-fallback.svg';
@@ -150,7 +151,11 @@ export function Section({
     <section className="catalogue-section">
       <header>
         <h2>{title}</h2>
-        {more ? <Link href={more}>See all</Link> : null}
+        {more ? (
+          <Link href={more} style={{ minHeight: 44, display: 'inline-flex', alignItems: 'center' }}>
+            See all
+          </Link>
+        ) : null}
       </header>
       {children}
     </section>

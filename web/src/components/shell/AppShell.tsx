@@ -116,6 +116,8 @@ function SearchControl({
             router.push(value.trim() ? `/search?q=${encodeURIComponent(value.trim())}` : '/search');
           }
         }}
+        id="header-search"
+        name="q"
         placeholder="Songs, artists"
         aria-label="Search songs and artists"
       />
@@ -208,7 +210,7 @@ function Footer() {
     <footer className="site-footer">
       <div className="footer-columns">
         <div className="footer-brand">
-          <img src="/brand/geet-wordmark-white-bars.png" alt="Geet" />
+          <img src="/brand/geet-wordmark-white-bars.png" alt="Geet" width={67} height={22} />
           <p>
             Music sounds <span>better together.</span>
           </p>
@@ -510,7 +512,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className={`app-shell ${scrolled ? 'has-scrolled' : ''}`}>
       <header className="phone-header">
         <Link href="/" aria-label="Geet home">
-          <img src="/brand/geet-wordmark-white-bars.png" alt="Geet" />
+          <img src="/brand/geet-wordmark-white-bars.png" alt="Geet" width={62} height={20} />
         </Link>
         <span className="phone-title">{pathname === '/' ? '' : title}</span>
         <div className="phone-account">
@@ -535,7 +537,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </header>
       <div className="tablet-rail">
         <Link className="rail-logo" href="/" aria-label="Geet home">
-          <img src="/icons/icon-192.png" alt="" />
+          <img src="/icons/icon-192.png" alt="" width={40} height={40} />
         </Link>
         <NavItems mode="rail" />
         <div className="rail-account">
@@ -544,7 +546,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
       <aside className="desktop-sidebar">
         <Link className="sidebar-logo" href="/">
-          <img src="/brand/geet-wordmark-white.png" alt="Geet" />
+          <img src="/brand/geet-wordmark-white.png" alt="Geet" width={92} height={30} />
         </Link>
         <NavItems mode="side" />
         <div className="sidebar-library">

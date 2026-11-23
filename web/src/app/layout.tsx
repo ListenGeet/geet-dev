@@ -51,6 +51,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         {dev ? <div className="env-bar" role="presentation" data-testid="dev-bar" /> : null}
         <ClerkProvider
+          telemetry={{ disabled: true }}
           signInUrl="/sign-in"
           signUpUrl="/sign-up"
           signInFallbackRedirectUrl="/"

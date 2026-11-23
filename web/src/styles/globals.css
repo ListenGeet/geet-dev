@@ -1615,6 +1615,9 @@ h2 {
   font: 700 22px/1.2 var(--font-display);
 }
 .catalogue-section header a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   color: var(--text-2);
   font-size: 13px;
   text-decoration: none;
@@ -1805,6 +1808,9 @@ h2 {
   object-fit: cover;
 }
 .track-title-button {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
   max-width: 100%;
   padding: 0;
   overflow: hidden;
@@ -1817,6 +1823,9 @@ h2 {
   cursor: pointer;
 }
 .track-row-main small a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
   color: var(--text-2);
   text-decoration: none;
 }
