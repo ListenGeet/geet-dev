@@ -1,4 +1,4 @@
-import { getLyrics, parseLyrics } from 'lyrics-lib';
+import { parseLyrics } from 'lyrics-lib';
 import { db } from './db';
 
 export type LyricsSource = 'lrclib' | 'lyrics_ovh';
@@ -9,6 +9,29 @@ export type StoredLyrics = {
 };
 
 const MAX_LYRICS_LENGTH = 30_000;
+const LRCLIB_CLIENT = 'Geet/1.0 (https://github.com/manpinder-Singh/geet-dev)';
+
+/** Prefer LRCLIB's timestamped LRC field when both lyric formats are available. */
+async function lookupLrclib(title: string, artist: string): Promise<string | null> {
+  const query = new URLSearchParams({ track_name: title, artist_name: artist });
+  const response = await fetch(`https://lrclib.net/api/get?${query}`, {
+    headers: {
+      Accept: 'application/json',
+      'Lrclib-Client': LRCLIB_CLIENT,
+      'User-Agent': LRCLIB_CLIENT,
+    },
+    signal: AbortSignal.timeout(4_000),
+  });
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`LRCLIB returned HTTP ${response.status}`);
+
+  const body: unknown = await response.json().catch(() => null);
+  if (!body || typeof body !== 'object') return null;
+  const result = body as { plainLyrics?: unknown; syncedLyrics?: unknown };
+  if (typeof result.syncedLyrics === 'string' && result.syncedLyrics.trim())
+    return result.syncedLyrics;
+  return typeof result.plainLyrics === 'string' ? result.plainLyrics : null;
+}
 
 export function normalizeLyrics(
   raw: string | null | undefined,
@@ -67,10 +90,7 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T
 export async function findLyrics(
   title: string,
   artist: string,
-  primary: (title: string, artist: string) => Promise<string | null> = async (
-    trackTitle,
-    trackArtist,
-  ) => getLyrics({ title: trackTitle, artist: trackArtist }),
+  primary: (title: string, artist: string) => Promise<string | null> = lookupLrclib,
   fallback: (title: string, artist: string) => Promise<string | null> = lookupLyricsOvh,
 ): Promise<StoredLyrics | null> {
   const cleanTitle = title.trim();
