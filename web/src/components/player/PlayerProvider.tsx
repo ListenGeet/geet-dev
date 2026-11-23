@@ -72,6 +72,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const { isSignedIn, getToken } = useAuth();
   const audioRef = useRef<HTMLAudioElement>(null);
   const preloadRef = useRef<HTMLAudioElement | null>(null);
+  const [activeAudio, setActiveAudio] = useState<HTMLAudioElement | null>(null);
+  const bindAudio = useCallback((audio: HTMLAudioElement | null) => {
+    if (!audio) return;
+    audioRef.current = audio;
+    setActiveAudio(audio);
+  }, []);
   const promptRef = useRef<HTMLAudioElement | null>(null);
   const currentRef = useRef<Track | null>(null);
   const queueRef = useRef<Track[]>([]);
@@ -185,7 +191,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   const playTrack = useCallback(
     async (nextTrack: Track, list: Track[] = [nextTrack], nextSource: PlaybackSource = source) => {
-      const audio = audioRef.current;
+      let audio = audioRef.current;
       if (!audio) return;
       const resumeAt =
         currentRef.current?.id === nextTrack.id && !audio.src ? resumePositionRef.current : 0;
@@ -211,20 +217,38 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       setLyricsOpen(false);
       try {
         const preloaded = preloadRef.current;
-        const hasPreload = Boolean(preloaded?.src && preloaded.dataset.trackId === nextTrack.id);
-        const grant = nextTrack.audioUrl?.startsWith('/offline-audio/')
-          ? { url: nextTrack.audioUrl, preview: false }
+        const isOfflineTrack = nextTrack.audioUrl?.startsWith('/offline-audio/') ?? false;
+        const hasPreload = Boolean(
+          !isOfflineTrack && preloaded?.src && preloaded.dataset.trackId === nextTrack.id,
+        );
+        const grant = isOfflineTrack
+          ? { url: nextTrack.audioUrl!, preview: false }
           : hasPreload
             ? { url: preloaded!.src, preview: !isSignedIn }
             : await callApi<PlayGrant>(`/api/tracks/${nextTrack.id}/play`, { token });
         if (hasPreload) {
+          const previousAudio = audio;
           preloaded!.pause();
+          previousAudio?.pause();
+          previousAudio?.removeAttribute('src');
+          previousAudio?.load();
+          audio = preloaded!;
+          audioRef.current = audio;
+          setActiveAudio(audio);
+          preloadRef.current = previousAudio;
+        } else if (preloadRef.current?.dataset.trackId !== nextTrack.id) {
+          preloadRef.current?.pause();
+          preloadRef.current?.removeAttribute('src');
+          preloadRef.current?.load();
           preloadRef.current = null;
         }
         previewRef.current = grant.preview;
         setPreview(grant.preview);
-        audio.src = grant.url;
-        audio.load();
+        if (!hasPreload) {
+          audio.preload = 'auto';
+          audio.src = grant.url;
+          audio.load();
+        }
         if (resumeAt > 0) audio.currentTime = resumeAt;
         await audio.play();
         resumePositionRef.current = 0;
@@ -391,7 +415,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const hideLyrics = useCallback(() => setLyricsOpen(false), []);
 
   useEffect(() => {
-    const audio = audioRef.current;
+    const audio = activeAudio;
     if (!audio) return;
     const finishPreview = () => {
       if (gateRef.current) return;
@@ -424,14 +448,23 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       }
       if (!previewRef.current && audio.duration - audio.currentTime <= 20) {
         const upcoming = queueRef.current[indexRef.current + 1];
-        if (upcoming && !preloadRef.current?.src) {
-          preloadRef.current = new Audio();
-          void callApi<PlayGrant>(`/api/tracks/${upcoming.id}/play`, { token })
+        let preloaded = preloadRef.current;
+        if (upcoming && preloaded?.dataset.trackId !== upcoming.id) {
+          preloaded?.pause();
+          preloaded?.removeAttribute('src');
+          preloaded?.load();
+          preloaded ??= new Audio();
+          preloaded.preload = 'auto';
+          preloaded.dataset.trackId = upcoming.id;
+          preloadRef.current = preloaded;
+          const requestedTrackId = upcoming.id;
+          void callApi<PlayGrant>(`/api/tracks/${requestedTrackId}/play`, { token })
             .then((grant) => {
-              if (preloadRef.current) {
-                preloadRef.current.preload = 'auto';
-                preloadRef.current.src = grant.url;
-                preloadRef.current.dataset.trackId = upcoming.id;
+              if (
+                preloadRef.current === preloaded &&
+                queueRef.current[indexRef.current + 1]?.id === requestedTrackId
+              ) {
+                preloaded!.src = grant.url;
               }
             })
             .catch(() => undefined);
@@ -532,7 +565,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       audio.removeEventListener('ended', onEnded);
       audio.removeEventListener('error', onError);
     };
-  }, [isSignedIn, logPlay, next, playTrack, source, token]);
+  }, [activeAudio, isSignedIn, logPlay, next, playTrack, source, token]);
 
   useEffect(() => {
     try {
@@ -689,7 +722,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   return (
     <Context.Provider value={value}>
       {children}
-      <audio ref={audioRef} preload="metadata" hidden />
+      <audio ref={bindAudio} preload="metadata" hidden />
       <SignInGate open={gateOpen} reason={gateReason} onClose={closeGate} />
     </Context.Provider>
   );
