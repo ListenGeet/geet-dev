@@ -599,6 +599,10 @@ function QueueTrack({
 
 function LyricsPreview() {
   const player = usePlayer();
+  useEffect(() => {
+    void player.loadLyrics();
+  }, [player.track?.id, player.loadLyrics]);
+
   const synced = player.lyrics?.synced;
   const active = synced?.length
     ? Math.max(
@@ -612,6 +616,24 @@ function LyricsPreview() {
   const lines = synced?.length
     ? synced.slice(active, active + 3).map(({ line }) => line)
     : (player.lyrics?.plain?.split('\n').filter(Boolean).slice(0, 3) ?? []);
+  if (player.lyricsLoading) {
+    return (
+      <div className="lyrics-preview" aria-live="polite" aria-busy="true">
+        <span className="discovery-label">Lyrics</span>
+        <span className="lyrics-preview-lines lyrics-preview-status">Loading lyrics…</span>
+      </div>
+    );
+  }
+  if (!lines.length) {
+    return (
+      <div className="lyrics-preview lyrics-preview-unavailable">
+        <span className="discovery-label">Lyrics</span>
+        <span className="lyrics-preview-lines lyrics-preview-status">
+          Lyrics aren’t available for this song yet.
+        </span>
+      </div>
+    );
+  }
   return (
     <button className="lyrics-preview" onClick={() => void player.showLyrics()}>
       <span className="discovery-label">Lyrics</span>
@@ -659,6 +681,7 @@ function LyricsView({
 }) {
   const player = usePlayer();
   const activeLineRef = useRef<HTMLButtonElement>(null);
+  const manualUntil = useRef(0);
   const activeLine =
     player.lyrics?.synced?.reduce(
       (active, item, index) => (item.t_ms <= player.currentTime * 1000 ? index : active),
@@ -668,6 +691,7 @@ function LyricsView({
   const seekMax = player.isPreview ? 40 : player.duration || (track?.durationMs ?? 0) / 1000;
 
   useEffect(() => {
+    if (Date.now() < manualUntil.current) return;
     activeLineRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
   }, [activeLine]);
 
@@ -694,8 +718,20 @@ function LyricsView({
       <div className="lyrics-side">
         <SleepTimerButton sleepMinutes={sleepMinutes} setSleepMinutes={setSleepMinutes} />
       </div>
-      <div className="lyrics-scroll">
-        {player.lyrics?.synced?.length ? (
+      <div
+        className="lyrics-scroll"
+        onWheel={() => {
+          manualUntil.current = Date.now() + 3500;
+        }}
+        onTouchMove={() => {
+          manualUntil.current = Date.now() + 3500;
+        }}
+      >
+        {player.lyricsLoading ? (
+          <p className="lyrics-message" role="status">Loading lyrics…</p>
+        ) : !player.lyrics?.synced?.length && !player.lyrics?.plain ? (
+          <p className="lyrics-message">Lyrics aren’t available for this song yet.</p>
+        ) : player.lyrics?.synced?.length ? (
           player.lyrics.synced.map((line, index) => (
             <button
               ref={index === activeLine ? activeLineRef : null}
@@ -708,7 +744,12 @@ function LyricsView({
             </button>
           ))
         ) : (
-          <p className="plain-lyrics">{player.lyrics?.plain}</p>
+          <>
+            {!player.lyrics?.synced?.length && (
+              <p className="lyrics-message">These lyrics aren’t time-synced for this song.</p>
+            )}
+            <p className="plain-lyrics">{player.lyrics?.plain}</p>
+          </>
         )}
       </div>
       <footer className="lyrics-footer">
@@ -733,11 +774,13 @@ function LyricsView({
           />
           <span>{timeLabel(seekMax || 40)}</span>
         </div>
-        {player.lyrics?.source === 'lrclib' || player.lyrics?.source === 'lyrics_ovh' ? (
+        {player.lyrics?.source ? (
           <small>
             {player.lyrics.source === 'lrclib'
               ? 'Lyrics from LRCLIB via LyricsLIB.'
-              : 'Lyrics from Lyrics.ovh.'}
+              : player.lyrics.source === 'lyrics_ovh'
+                ? 'Lyrics from Lyrics.ovh.'
+                : 'Lyrics added by the uploader.'}
           </small>
         ) : null}
       </footer>

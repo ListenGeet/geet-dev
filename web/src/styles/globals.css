@@ -1269,6 +1269,16 @@ h2 {
   font-weight: 600;
   text-align: center;
 }
+.lyrics-preview-status {
+  align-self: center;
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: normal;
+}
+.lyrics-preview-unavailable {
+  cursor: default;
+}
 .fullplayer-upnext {
   min-width: 0;
   padding: 14px 4px;
@@ -1425,6 +1435,14 @@ h2 {
   overscroll-behavior: contain;
   padding: 24px 0;
   scroll-behavior: smooth;
+}
+.lyrics-message {
+  width: min(100%, 600px);
+  margin: auto;
+  padding: 12px 4px;
+  color: var(--text-2);
+  font-size: 14px;
+  text-align: center;
 }
 .lyric-line {
   width: min(100%, 600px);

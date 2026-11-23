@@ -37,6 +37,8 @@ interface PlayerState {
   queueOpen: boolean;
   lyricsOpen: boolean;
   lyrics: Lyrics | null;
+  lyricsLoading: boolean;
+  loadLyrics: () => Promise<Lyrics | null>;
   source: PlaybackSource;
   playTrack: (track: Track, list?: Track[], source?: PlaybackSource) => Promise<void>;
   toggle: () => Promise<void>;
@@ -101,6 +103,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [queueOpen, setQueueOpen] = useState(false);
   const [lyricsOpen, setLyricsOpen] = useState(false);
   const [lyrics, setLyrics] = useState<Lyrics | null>(null);
+  const [lyricsLoading, setLyricsLoading] = useState(false);
+  const lyricsLoadedFor = useRef<string | null>(null);
   const [source, setSource] = useState<PlaybackSource>('Home');
 
   const token = useCallback(
@@ -150,6 +154,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       setCurrentTime(resumeAt);
       setDuration((nextTrack.durationMs ?? 0) / 1000);
       setLyrics(null);
+      lyricsLoadedFor.current = null;
+      setLyricsLoading(false);
       setLyricsOpen(false);
       try {
         const preloaded = preloadRef.current;
@@ -293,22 +299,32 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const loadLyrics = useCallback(async () => {
+    const active = currentRef.current;
+    if (!active) return null;
+    if (lyricsLoadedFor.current === active.id) return lyrics;
+    if (lyricsLoading) return null;
+    setLyricsLoading(true);
+    try {
+      const result = await callApi<{ lyrics: Lyrics | null }>(`/api/lyrics/${active.id}`);
+      if (currentRef.current?.id !== active.id) return null;
+      lyricsLoadedFor.current = active.id;
+      setLyrics(result.lyrics);
+      return result.lyrics;
+    } catch {
+      return null;
+    } finally {
+      if (currentRef.current?.id === active.id) setLyricsLoading(false);
+    }
+  }, [lyrics, lyricsLoading]);
+
   const showLyrics = useCallback(async () => {
     if (!currentRef.current) return;
-    if (!lyrics) {
-      try {
-        const result = await callApi<{ lyrics: Lyrics | null }>(
-          `/api/lyrics/${currentRef.current.id}`,
-        );
-        setLyrics(result.lyrics);
-        if (!result.lyrics) return;
-      } catch {
-        return;
-      }
-    }
+    const result = lyricsLoadedFor.current === currentRef.current.id ? lyrics : await loadLyrics();
+    if (!result) return;
     setLyricsOpen(true);
     setFullOpen(true);
-  }, [lyrics]);
+  }, [lyrics, loadLyrics]);
 
   const closeGate = useCallback(() => {
     setGateOpen(false);
@@ -544,6 +560,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       queueOpen,
       lyricsOpen,
       lyrics,
+      lyricsLoading,
+      loadLyrics,
       source,
       playTrack,
       toggle,
@@ -579,6 +597,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       queueOpen,
       lyricsOpen,
       lyrics,
+      lyricsLoading,
       source,
       playTrack,
       toggle,
@@ -589,6 +608,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       setShuffle,
       cycleRepeat,
       showLyrics,
+      loadLyrics,
       closeGate,
       openGate,
       hideLyrics,
