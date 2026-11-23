@@ -16,6 +16,9 @@ export interface ProfileRow {
   onboarded_at: string | null;
   username_changed_at: string | null;
   email_news: boolean;
+  autoplay_similar: boolean;
+  show_lyrics: boolean;
+  keep_screen_awake: boolean;
   email_news_at: string | null;
   welcome_sent_at: string | null;
   created_at: string;

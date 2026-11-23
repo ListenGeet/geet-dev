@@ -6,6 +6,7 @@ export default tseslint.config(
   {
     ignores: [
       '**/.next/**',
+      '**/.next-audit/**',
       '**/node_modules/**',
       '**/coverage/**',
       'web/public/**',

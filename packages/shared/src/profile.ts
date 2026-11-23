@@ -68,6 +68,9 @@ export interface MeDto {
   showListening: 'friends' | 'nobody';
   acceptRequests: 'everyone' | 'nobody';
   emailNews: boolean;
+  autoplaySimilar: boolean;
+  showLyrics: boolean;
+  keepScreenAwake: boolean;
   onboarded: boolean;
   usernameChangeableAt: string | null;
   counts: { favourites: number; playlists: number; friends: number };
@@ -97,6 +100,9 @@ export interface ProfilePatch {
   showListening?: (typeof SHOW_LISTENING)[number];
   acceptRequests?: (typeof ACCEPT_REQUESTS)[number];
   emailNews?: boolean;
+  autoplaySimilar?: boolean;
+  showLyrics?: boolean;
+  keepScreenAwake?: boolean;
   /** Marks onboarding finished. Only true is accepted; it cannot be undone. */
   onboarded?: true;
 }
@@ -111,6 +117,9 @@ const KEYS = new Set([
   'showListening',
   'acceptRequests',
   'emailNews',
+  'autoplaySimilar',
+  'showLyrics',
+  'keepScreenAwake',
   'onboarded',
 ]);
 
@@ -169,6 +178,13 @@ export function parseProfilePatch(body: unknown): Parsed<ProfilePatch> {
     if (typeof input.emailNews !== 'boolean')
       return { ok: false, message: 'Email news must be true or false.' };
     out.emailNews = input.emailNews;
+  }
+  for (const key of ['autoplaySimilar', 'showLyrics', 'keepScreenAwake'] as const) {
+    if (key in input) {
+      if (typeof input[key] !== 'boolean')
+        return { ok: false, message: `${key} must be true or false.` };
+      out[key] = input[key] as boolean;
+    }
   }
   if ('onboarded' in input) {
     if (input.onboarded !== true)

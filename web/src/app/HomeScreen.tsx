@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { useMe } from '@/components/auth/MeProvider';
 import {
@@ -19,6 +20,10 @@ export type HomeData = {
   newTracks: Track[];
   popular: Track[];
   artists: { artist: string; artistKey: string; plays: number }[];
+  personalized?: boolean;
+  jumpBack?: Track[];
+  dailyMixes?: { id: string; name: string; tracks: Track[] }[];
+  artistsYouLike?: { artist: string; artistKey: string; coverUrl: string }[];
 };
 
 const languages = [
@@ -29,7 +34,7 @@ const languages = [
 ];
 
 export default function HomePage({ initialData }: { initialData: HomeData | null }) {
-  const { status } = useMe();
+  const { status, api } = useMe();
   const { t } = useLocale();
   const [language, setLanguage] = useState('');
   const [languageReady, setLanguageReady] = useState(false);
@@ -55,11 +60,14 @@ export default function HomePage({ initialData }: { initialData: HomeData | null
   }, [language, languageReady]);
   useEffect(() => {
     if (!languageReady) return;
-    if (initialData && language === '' && reload === 0) return;
+    if (initialData && language === '' && reload === 0 && status !== 'ready') return;
     let active = true;
     setLoading(true);
     setError(false);
-    callApi<HomeData>(`/api/home${language ? `?language=${encodeURIComponent(language)}` : ''}`)
+    (status === 'ready'
+      ? api<HomeData>(`/api/home${language ? `?language=${encodeURIComponent(language)}` : ''}`)
+      : callApi<HomeData>(`/api/home${language ? `?language=${encodeURIComponent(language)}` : ''}`)
+    )
       .then((result) => {
         if (active) setData(result);
       })
@@ -72,7 +80,7 @@ export default function HomePage({ initialData }: { initialData: HomeData | null
     return () => {
       active = false;
     };
-  }, [initialData, language, languageReady, reload]);
+  }, [api, initialData, language, languageReady, reload, status]);
   return (
     <main className="home-page">
       {status === 'guest' ? (
@@ -117,6 +125,37 @@ export default function HomePage({ initialData }: { initialData: HomeData | null
         <EmptyState title={t('nothing')} sentence={t('songsSoon')} />
       ) : (
         <>
+          {data.personalized && data.jumpBack?.length ? (
+            <Section title="Jump back in">
+              <TrackRows tracks={data.jumpBack} source="Jump back in" />
+            </Section>
+          ) : null}
+          {data.personalized && data.dailyMixes?.length ? (
+            <Section title="Made for you">
+              <div className="cover-cards">
+                {data.dailyMixes.map((mix) => (
+                  <Link className="cover-card" href={`/playlist/${mix.id}`} key={mix.id}>
+                    <span className="cover-card-image">
+                      <Image
+                        src={mix.tracks[0]?.coverUrl ?? '/illustrations/cover-fallback.svg'}
+                        alt=""
+                        width={180}
+                        height={180}
+                        unoptimized
+                      />
+                    </span>
+                    <strong>{mix.name}</strong>
+                    <small>{mix.tracks.length} songs</small>
+                  </Link>
+                ))}
+              </div>
+            </Section>
+          ) : null}
+          {data.personalized && data.artistsYouLike?.length ? (
+            <Section title="Artists you like">
+              <ArtistCards artists={data.artistsYouLike} />
+            </Section>
+          ) : null}
           <Section title={t('newOnGeet')} more="/search?sort=new">
             <div className="cover-cards">
               {data.newTracks.map((track, index) => (

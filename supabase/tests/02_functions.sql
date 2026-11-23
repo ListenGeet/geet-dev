@@ -50,6 +50,23 @@ select public.record_track_play('00000000-0000-0000-0000-000000000001');
 select t.assert((select plays from tracks where id = '00000000-0000-0000-0000-000000000001') = 6,
   'record_track_play increments the ready track count atomically');
 
+-- Phase 4: guarded playlist replacement and history retention.
+insert into playlists (id, owner_id, name) values ('00000000-0000-0000-0000-0000000000aa', (select a from ids), 'Ordered');
+select public.replace_playlist_tracks('00000000-0000-0000-0000-0000000000aa', (select a from ids), array[
+  '00000000-0000-0000-0000-000000000001'::uuid, '00000000-0000-0000-0000-000000000002'::uuid]);
+select t.assert((select array_agg(track_id order by position) from playlist_tracks where playlist_id = '00000000-0000-0000-0000-0000000000aa') = array[
+  '00000000-0000-0000-0000-000000000001'::uuid, '00000000-0000-0000-0000-000000000002'::uuid],
+  'playlist replacement preserves the submitted order');
+select t.assert(t.sqlstate_of($q$select public.replace_playlist_tracks('00000000-0000-0000-0000-0000000000aa', (select b from ids), array[]::uuid[])$q$) = 'P0001',
+  'playlist replacement rejects another owner');
+insert into play_history (profile_id, track_id, played_at, outcome) values
+  ((select a from ids), '00000000-0000-0000-0000-000000000001', now() - interval '13 months', 'completed'),
+  ((select a from ids), '00000000-0000-0000-0000-000000000002', now(), 'completed');
+select public.cleanup_retained_data();
+select t.assert(not exists (select 1 from play_history where played_at < now() - interval '12 months')
+  and exists (select 1 from play_history where played_at > now() - interval '1 day'),
+  'cleanup removes history older than twelve months and keeps recent plays');
+
 -- rate limiter.
 select t.assert((select public.rate_limit_hit('ip:1', 3, 60)) and (select public.rate_limit_hit('ip:1', 3, 60))
   and (select public.rate_limit_hit('ip:1', 3, 60)), 'rate_limit_hit allows up to the limit');

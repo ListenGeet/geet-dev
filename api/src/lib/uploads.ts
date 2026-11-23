@@ -39,6 +39,7 @@ export async function createUpload(
     artist: string;
     album?: string;
     translit?: string;
+    sourceSha256?: string;
   },
 ) {
   const max = Math.min(Number(process.env.MAX_TRACK_MB ?? 50), 50) * 1024 * 1024;
@@ -68,6 +69,7 @@ export async function createUpload(
         album: input.album ?? null,
         translit: input.translit ?? null,
         status: 'uploading',
+        source_sha256: input.sourceSha256 ?? null,
       })
       .select('*')
       .single(),

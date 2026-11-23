@@ -1,5 +1,114 @@
 @import './tokens.css';
 
+.offline-banner {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  padding: 0.65rem 1rem;
+  text-align: center;
+  background: #282828;
+  color: #fff;
+  font-size: 0.875rem;
+}
+
+.library-tools,
+.library-tabs,
+.page-heading,
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.profile-stats {
+  display: flex;
+  gap: 1.5rem;
+  margin: 1rem 0;
+}
+.profile-stats span {
+  display: grid;
+  gap: 0.25rem;
+  color: var(--text-2);
+}
+.profile-stats strong {
+  color: var(--text);
+  font-size: 1.4rem;
+}
+
+.library-tools {
+  margin: 1rem 0;
+}
+.library-tools label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.library-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+.storage-meter {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.6rem;
+  margin: 1rem 0;
+}
+.storage-meter progress {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+.settings-section {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem 0;
+  border-bottom: 1px solid #292929;
+}
+.settings-section .field {
+  display: grid;
+  gap: 0.5rem;
+}
+.settings-row {
+  min-height: 48px;
+}
+.library-secondary {
+  margin-top: 2rem;
+}
+.library-settings-link {
+  margin-top: 2rem;
+  padding: 1rem 0;
+}
+.player-status {
+  position: fixed;
+  z-index: 100;
+  bottom: 6rem;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.75rem 1rem;
+  border-radius: 999px;
+  background: #292929;
+  color: white;
+}
+
+.download-ring {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  transform: rotate(-90deg);
+}
+.download-ring-track,
+.download-ring-value {
+  fill: none;
+  stroke-width: 3;
+}
+.download-ring-track {
+  stroke: #666;
+}
+.download-ring-value {
+  stroke: var(--accent);
+  stroke-linecap: round;
+}
+
 *,
 *::before,
 *::after {

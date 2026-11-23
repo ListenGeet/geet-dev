@@ -2,15 +2,19 @@
 
 import { parseBlob } from 'music-metadata';
 import Image from 'next/image';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/Button';
 import { useMe } from '@/components/auth/MeProvider';
 
 type Created = {
   trackId: string;
-  uploadUrl: string;
-  method: 'PUT';
-  headers: Record<string, string>;
+  duplicate?: boolean;
+  status?: string;
+  title?: string;
+  artist?: string;
+  uploadUrl?: string;
+  method?: 'PUT';
+  headers?: Record<string, string>;
 };
 
 type UploadedTrack = {
@@ -19,9 +23,19 @@ type UploadedTrack = {
   artist: string;
 };
 
+type UploadRow = {
+  id: string;
+  title: string;
+  artist: string;
+  status: string;
+  error: string | null;
+  created_at: string;
+};
+
 export default function UploadPage() {
   const { api, me, status } = useMe();
   const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [title, setTitle] = useState('');
   const [artist, setArtist] = useState('');
   const [album, setAlbum] = useState('');
@@ -30,7 +44,22 @@ export default function UploadPage() {
   const [readingTags, setReadingTags] = useState(false);
   const [uploadedTrack, setUploadedTrack] = useState<UploadedTrack | null>(null);
   const [coverUnavailable, setCoverUnavailable] = useState(false);
+  const [uploads, setUploads] = useState<UploadRow[]>([]);
+  const [uploadAllowed, setUploadAllowed] = useState<boolean | null>(null);
   const metadataRequest = useRef(0);
+
+  const refreshUploads = async () => {
+    try {
+      const result = await api<{ items: UploadRow[]; canUpload: boolean }>('/api/uploads');
+      setUploads(result.items);
+      setUploadAllowed(result.canUpload);
+    } catch {
+      /* the upload form remains usable */
+    }
+  };
+  useEffect(() => {
+    if (status === 'ready') void refreshUploads();
+  }, [status]);
 
   function limitField(value: string) {
     return value.trim().slice(0, 120);
@@ -50,6 +79,7 @@ export default function UploadPage() {
   async function selectFile(selected: File | null) {
     const request = ++metadataRequest.current;
     setFile(selected);
+    setFiles(selected ? [selected] : []);
     setUploadedTrack(null);
     setCoverUnavailable(false);
     setArtist('');
@@ -87,82 +117,135 @@ export default function UploadPage() {
     }
   }
 
+  async function uploadOne(
+    selected: File,
+    details: { title: string; artist: string; album: string },
+  ) {
+    const digest = new Uint8Array(
+      await crypto.subtle.digest('SHA-256', await selected.arrayBuffer()),
+    );
+    const sourceSha256 = Array.from(digest, (byte) => byte.toString(16).padStart(2, '0')).join('');
+    const created = await api<Created>('/api/uploads', {
+      method: 'POST',
+      body: {
+        fileName: selected.name,
+        size: selected.size,
+        sourceSha256,
+        contentType: selected.type || 'application/octet-stream',
+        title: details.title,
+        artist: details.artist,
+        ...(details.album ? { album: details.album } : {}),
+      },
+    });
+    if (created.duplicate) {
+      setMessage(
+        `Duplicate file · “${created.title ?? details.title}” is already ${created.status === 'ready' ? 'uploaded' : 'processing'}. Skipped.`,
+      );
+      setUploadedTrack({
+        trackId: created.trackId,
+        title: created.title ?? details.title,
+        artist: created.artist ?? details.artist,
+      });
+      await refreshUploads();
+      return;
+    }
+    if (!created.uploadUrl || !created.method || !created.headers)
+      throw new Error('The upload could not be started.');
+    setMessage(`Uploading ${selected.name}`);
+    await new Promise<void>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open(created.method!, created.uploadUrl!);
+      for (const [name, value] of Object.entries(created.headers!))
+        xhr.setRequestHeader(name, value);
+      xhr.upload.onprogress = (progress) => {
+        if (progress.lengthComputable)
+          setMessage(
+            `Uploading ${selected.name} · ${Math.round((progress.loaded / progress.total) * 100)}%`,
+          );
+      };
+      xhr.onload = () =>
+        xhr.status >= 200 && xhr.status < 300
+          ? resolve()
+          : reject(new Error('The file could not be uploaded.'));
+      xhr.onerror = () => reject(new Error('The upload connection was interrupted.'));
+      xhr.send(selected);
+    });
+    const completion = await api<{ dispatched?: boolean }>(
+      `/api/uploads/${created.trackId}/complete`,
+      { method: 'POST' },
+    );
+    setMessage(
+      completion.dispatched === false
+        ? 'Queued, but the worker could not be started. Check the API GitHub dispatch settings.'
+        : `Queued ${selected.name}`,
+    );
+    for (let attempt = 0; attempt < 120; attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const result = await api<{ status: string; error?: string }>(
+        `/api/uploads/${created.trackId}`,
+      );
+      if (result.status === 'ready') {
+        setUploadedTrack({
+          trackId: created.trackId,
+          title: details.title,
+          artist: details.artist,
+        });
+        setCoverUnavailable(false);
+        setMessage(`Song uploaded and ready · ${selected.name}`);
+        break;
+      }
+      setMessage(
+        result.status === 'failed'
+          ? `Failed · ${result.error ?? 'Try again.'}`
+          : `${result.status} · ${selected.name}`,
+      );
+      if (result.status === 'failed') break;
+    }
+    await refreshUploads();
+  }
+
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (readingTags) {
       setMessage('Wait for song tags to finish loading.');
       return;
     }
-    if (!file) {
+    const batch = files.length ? files : file ? [file] : [];
+    if (!batch.length) {
       setMessage('Choose an audio file first.');
       return;
     }
-    const submittedTrack = { title: title.trim(), artist: artist.trim() };
     setUploadedTrack(null);
     setBusy(true);
     try {
-      const created = await api<Created>('/api/uploads', {
-        method: 'POST',
-        body: {
-          fileName: file.name,
-          size: file.size,
-          contentType: file.type || 'application/octet-stream',
-          title,
-          artist,
-          ...(album.trim() ? { album: album.trim() } : {}),
-        },
-      });
-      setMessage('Uploading');
-      await new Promise<void>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open(created.method, created.uploadUrl);
-        for (const [name, value] of Object.entries(created.headers))
-          xhr.setRequestHeader(name, value);
-        xhr.upload.onprogress = (progress) => {
-          if (progress.lengthComputable)
-            setMessage(`Uploading · ${Math.round((progress.loaded / progress.total) * 100)}%`);
-        };
-        xhr.onload = () =>
-          xhr.status >= 200 && xhr.status < 300
-            ? resolve()
-            : reject(new Error('The file could not be uploaded.'));
-        xhr.onerror = () => reject(new Error('The upload connection was interrupted.'));
-        xhr.send(file);
-      });
-      const completion = await api<{ dispatched?: boolean }>(
-        `/api/uploads/${created.trackId}/complete`,
-        { method: 'POST' },
-      );
-      setMessage(
-        completion.dispatched === false
-          ? 'Queued, but the worker could not be started. Check the API GitHub dispatch settings.'
-          : 'Queued',
-      );
-      for (let attempt = 0; attempt < 120; attempt++) {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        const result = await api<{ status: string; error?: string }>(
-          `/api/uploads/${created.trackId}`,
-        );
-        if (result.status === 'ready') {
-          setUploadedTrack({ trackId: created.trackId, ...submittedTrack });
-          setCoverUnavailable(false);
-          setMessage('Song uploaded and ready.');
-          break;
+      for (let index = 0; index < batch.length; index++) {
+        const selected = batch[index]!;
+        let details = { title: title.trim(), artist: artist.trim(), album: album.trim() };
+        if (selected !== file) {
+          try {
+            const metadata = await parseBlob(selected, { skipCovers: true });
+            details = {
+              title: limitField(metadata.common.title ?? '') || titleFromFilename(selected.name),
+              artist: limitField(
+                metadata.common.artist || metadata.common.artists?.join(', ') || '',
+              ),
+              album: limitField(metadata.common.album ?? ''),
+            };
+          } catch {
+            details = { title: titleFromFilename(selected.name), artist: '', album: '' };
+          }
         }
-        setMessage(
-          result.status === 'processing'
-            ? 'Processing'
-            : result.status === 'ready'
-              ? 'Ready'
-              : result.status === 'failed'
-                ? `Failed · ${result.error ?? 'Try again.'}`
-                : result.status === 'queued'
-                  ? completion.dispatched === false
-                    ? 'Queued · worker dispatch failed; check GitHub Actions settings'
-                    : 'Queued'
-                  : 'Uploading',
-        );
-        if (result.status === 'ready' || result.status === 'failed') break;
+        if (!details.title || !details.artist) {
+          setMessage(`Skipped ${selected.name} · add a title and artist before uploading.`);
+          continue;
+        }
+        try {
+          await uploadOne(selected, details);
+        } catch (error) {
+          setMessage(
+            `${selected.name} failed · ${error instanceof Error ? error.message : 'Try again.'}`,
+          );
+        }
       }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'The upload could not be completed.');
@@ -177,7 +260,7 @@ export default function UploadPage() {
         <p>Loading…</p>
       </main>
     );
-  if (!me || me.role !== 'admin')
+  if (!me || uploadAllowed === false)
     return (
       <main className="page">
         <h1>Uploads are limited right now</h1>
@@ -187,16 +270,24 @@ export default function UploadPage() {
   return (
     <main className="upload-page">
       <h1>Upload a song</h1>
-      <p>Audio files up to 50 MB. Your upload will be checked before it becomes playable.</p>
+      <p>
+        Audio files up to 50 MB. Select one or more songs. Your uploads will be checked before they
+        become playable.
+      </p>
       <form className="upload-form" onSubmit={submit}>
         <label className="field">
           <span className="field-label">Audio file</span>
           <input
             required
             type="file"
+            multiple
             accept="audio/*,.mp3,.m4a,.wav,.flac,.ogg"
             disabled={busy || readingTags}
-            onChange={(event) => void selectFile(event.currentTarget.files?.[0] ?? null)}
+            onChange={(event) => {
+              const selected = Array.from(event.currentTarget.files ?? []);
+              void selectFile(selected[0] ?? null);
+              setFiles(selected);
+            }}
           />
         </label>
         <label className="field">
@@ -257,6 +348,28 @@ export default function UploadPage() {
           </div>
         </section>
       )}
+      <section className="upload-list">
+        <h2>Your uploads</h2>
+        {uploads.length ? (
+          <div className="track-list">
+            {uploads.map((item) => (
+              <div className="track-row" key={item.id}>
+                <span className="track-row-main">
+                  <strong>{item.title}</strong>
+                  <small>{item.artist}</small>
+                </span>
+                <span>
+                  {item.status === 'failed'
+                    ? `Failed · ${item.error ?? 'Try again.'}`
+                    : item.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p>No uploads yet.</p>
+        )}
+      </section>
     </main>
   );
 }

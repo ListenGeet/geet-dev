@@ -3,6 +3,7 @@ import { ApiError, callApi } from './api';
 
 beforeEach(() => {
   process.env.NEXT_PUBLIC_API_URL = 'https://dev-api.listengeet.com/';
+  vi.stubGlobal('window', { location: { hostname: 'dev.listengeet.com' } });
 });
 afterEach(() => vi.unstubAllGlobals());
 

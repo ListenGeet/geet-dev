@@ -84,6 +84,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const repeatRef = useRef<RepeatMode>('off');
   const retryRef = useRef(false);
   const playedAtRef = useRef(0);
+  const autoplaySimilarRef = useRef(true);
   const resumePositionRef = useRef(0);
   const [track, setTrack] = useState<Track | null>(null);
   const [queue, setQueue] = useState<Track[]>([]);
@@ -107,6 +108,19 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const lyricsLoadedFor = useRef<string | null>(null);
   const [source, setSource] = useState<PlaybackSource>('Home');
 
+  useEffect(() => {
+    try {
+      autoplaySimilarRef.current = localStorage.getItem('lg-autoplay-similar') !== 'false';
+    } catch {
+      /* storage may be unavailable */
+    }
+    const update = (event: Event) => {
+      autoplaySimilarRef.current = (event as CustomEvent<boolean>).detail;
+    };
+    window.addEventListener('geet:autoplay-similar', update);
+    return () => window.removeEventListener('geet:autoplay-similar', update);
+  }, []);
+
   const token = useCallback(
     () => (isSignedIn ? getToken() : Promise.resolve(null)),
     [getToken, isSignedIn],
@@ -119,6 +133,16 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       playedAtRef.current = 0;
       if (listenedMs < 30_000 && outcome === 'partial') return;
       try {
+        if (!navigator.onLine) {
+          const queue = JSON.parse(localStorage.getItem('lg_history_queue') ?? '[]') as {
+            trackId: string;
+            listenedMs: number;
+            outcome: string;
+          }[];
+          queue.push({ trackId: active.id, listenedMs, outcome });
+          localStorage.setItem('lg_history_queue', JSON.stringify(queue.slice(-100)));
+          return;
+        }
         await callApi('/api/history', {
           method: 'POST',
           token,
@@ -130,6 +154,34 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     },
     [isSignedIn, token],
   );
+
+  useEffect(() => {
+    if (!isSignedIn || !navigator.onLine) return;
+    const flush = async () => {
+      let queued: {
+        trackId: string;
+        listenedMs: number;
+        outcome: 'completed' | 'skipped' | 'partial';
+      }[];
+      try {
+        queued = JSON.parse(localStorage.getItem('lg_history_queue') ?? '[]');
+      } catch {
+        queued = [];
+      }
+      while (queued.length) {
+        try {
+          await callApi('/api/history', { method: 'POST', token, body: queued[0] });
+          queued.shift();
+          localStorage.setItem('lg_history_queue', JSON.stringify(queued));
+        } catch {
+          return;
+        }
+      }
+    };
+    void flush();
+    window.addEventListener('online', flush);
+    return () => window.removeEventListener('online', flush);
+  }, [isSignedIn, token]);
 
   const playTrack = useCallback(
     async (nextTrack: Track, list: Track[] = [nextTrack], nextSource: PlaybackSource = source) => {
@@ -160,9 +212,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       try {
         const preloaded = preloadRef.current;
         const hasPreload = Boolean(preloaded?.src && preloaded.dataset.trackId === nextTrack.id);
-        const grant = hasPreload
-          ? { url: preloaded!.src, preview: !isSignedIn }
-          : await callApi<PlayGrant>(`/api/tracks/${nextTrack.id}/play`, { token });
+        const grant = nextTrack.audioUrl?.startsWith('/offline-audio/')
+          ? { url: nextTrack.audioUrl, preview: false }
+          : hasPreload
+            ? { url: preloaded!.src, preview: !isSignedIn }
+            : await callApi<PlayGrant>(`/api/tracks/${nextTrack.id}/play`, { token });
         if (hasPreload) {
           preloaded!.pause();
           preloadRef.current = null;
@@ -402,7 +456,24 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         audio.currentTime = 0;
         void audio.play().catch(() => setPlaying(false));
       } else {
-        void next();
+        if (queueRef.current.length > 1) void next();
+        else if (
+          autoplaySimilarRef.current &&
+          isSignedIn &&
+          currentRef.current &&
+          navigator.onLine
+        ) {
+          const previous = currentRef.current;
+          void callApi<{ songs: Track[] }>(
+            `/api/search?q=${encodeURIComponent(previous.artist)}&type=songs`,
+            { token },
+          )
+            .then(({ songs }) => {
+              const candidate = songs.find((item) => item.id !== previous.id);
+              if (candidate) void playTrack(candidate, [candidate], 'Autoplay');
+            })
+            .catch(() => undefined);
+        }
       }
     };
     const onError = () => {
@@ -461,7 +532,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       audio.removeEventListener('ended', onEnded);
       audio.removeEventListener('error', onError);
     };
-  }, [logPlay, next, playTrack, source, token]);
+  }, [isSignedIn, logPlay, next, playTrack, source, token]);
 
   useEffect(() => {
     try {

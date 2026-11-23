@@ -8,6 +8,7 @@ export interface Track {
   durationMs?: number | null;
   waveform?: number[] | null;
   coverUrl?: string;
+  audioUrl?: string;
 }
 
 export interface Lyrics {

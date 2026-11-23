@@ -5,7 +5,6 @@ import {
   CaretDown,
   DownloadSimple,
   DotsThree,
-  Heart,
   MicrophoneStage,
   Moon,
   Pause,
@@ -29,6 +28,9 @@ import { Icon } from '@/components/Icon';
 import { Equalizer } from '@/components/Equalizer';
 import { usePlayer } from './PlayerProvider';
 import type { Track } from './types';
+import { FavoriteButton } from '@/components/catalogue/CatalogueComponents';
+import { useMe } from '@/components/auth/MeProvider';
+import { readOffline, saveOffline } from '@/lib/offline';
 
 function timeLabel(seconds: number) {
   const safe = Math.max(0, Math.floor(seconds || 0));
@@ -236,7 +238,29 @@ function SleepTimerButton({
 
 export function PlayerChrome() {
   const player = usePlayer();
+  const { api, status, me } = useMe();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [playlistOpen, setPlaylistOpen] = useState(false);
+  const [playlists, setPlaylists] = useState<{ id: string; name: string; kind: string }[]>([]);
+  const [actionMessage, setActionMessage] = useState('');
+  const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!player.fullOpen || !me?.keepScreenAwake || !('wakeLock' in navigator)) return;
+    const controller = new AbortController();
+    void (
+      navigator as Navigator & {
+        wakeLock: { request: (type: 'screen') => Promise<{ release: () => Promise<void> }> };
+      }
+    ).wakeLock
+      .request('screen')
+      .then((lock) => {
+        if (controller.signal.aborted) void lock.release();
+        else controller.signal.addEventListener('abort', () => void lock.release(), { once: true });
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [me?.keepScreenAwake, player.fullOpen]);
   const [sleepMinutes, setSleepMinutes] = useState<number | null>(null);
 
   useEffect(() => {
@@ -286,6 +310,48 @@ export function PlayerChrome() {
   const track = player.track;
   const max = player.isPreview ? 40 : player.duration || (track.durationMs ?? 0) / 1000;
 
+  async function openPlaylists() {
+    if (status !== 'ready') {
+      player.openGate('favourite');
+      return;
+    }
+    try {
+      const result = await api<{ items: { id: string; name: string; kind: string }[] }>(
+        '/api/playlists',
+      );
+      setPlaylists(result.items.filter((item) => item.kind === 'user'));
+      setPlaylistOpen(true);
+    } catch {
+      setActionMessage('Could not load your playlists.');
+    }
+  }
+  async function addToPlaylist(id: string) {
+    try {
+      await api(`/api/playlists/${id}/tracks`, { method: 'POST', body: { trackId: track.id } });
+      setPlaylistOpen(false);
+      setActionMessage('Added to playlist.');
+    } catch {
+      setActionMessage('Could not add this song.');
+    }
+  }
+  async function downloadTrack() {
+    if (status !== 'ready') {
+      player.openGate('favourite');
+      return;
+    }
+    try {
+      setDownloadProgress(0);
+      const result = await api<{ url: string }>(`/api/downloads/${track.id}`);
+      await saveOffline(track, result.url, (percent) => {
+        setDownloadProgress(percent);
+        setActionMessage(percent < 100 ? `Saving · ${percent}%` : 'Saved for offline listening.');
+      });
+    } catch {
+      setDownloadProgress(null);
+      setActionMessage('Could not save this song.');
+    }
+  }
+
   return (
     <>
       <div className="mini-player" aria-label="Mini player">
@@ -307,14 +373,7 @@ export function PlayerChrome() {
             </span>
           </span>
         </button>
-        <button
-          className="btn-icon player-gated"
-          aria-label="Favourite"
-          disabled={player.isSignedIn}
-          onClick={() => player.openGate('favourite')}
-        >
-          <Icon icon={Heart} />
-        </button>
+        <FavoriteButton track={track} onGuestClick={() => player.openGate('favourite')} />
         <button
           className="play-control mini-play"
           aria-label={player.isPlaying ? 'Pause' : 'Play'}
@@ -332,17 +391,14 @@ export function PlayerChrome() {
               <small>{track.artist}</small>
             </span>
           </button>
+          <FavoriteButton track={track} onGuestClick={() => player.openGate('favourite')} />
           <button
-            className="btn-icon player-gated"
-            aria-label="Favourite"
-            disabled={player.isSignedIn}
-            onClick={() => player.openGate('favourite')}
+            className="btn-icon"
+            aria-label="Add to playlist"
+            onClick={() => void openPlaylists()}
           >
-            <Icon icon={Heart} />
-          </button>
-          <DisabledAction label="Add to playlist">
             <Icon icon={PlusCircle} />
-          </DisabledAction>
+          </button>
         </div>
         <div className="desktop-controls">
           <Transport />
@@ -361,18 +417,30 @@ export function PlayerChrome() {
           </div>
         </div>
         <div className="desktop-actions">
-          <button className="btn-icon" aria-label="Lyrics" onClick={() => void player.showLyrics()}>
-            <Icon icon={MicrophoneStage} />
-          </button>
+          {me?.showLyrics !== false ? (
+            <button
+              className="btn-icon"
+              aria-label="Lyrics"
+              onClick={() => void player.showLyrics()}
+            >
+              <Icon icon={MicrophoneStage} />
+            </button>
+          ) : null}
           <button className="btn-icon" aria-label="Queue" onClick={() => player.showQueue(true)}>
             <Icon icon={Queue} />
           </button>
           <DisabledAction label="Jam">
             <Icon icon={UsersThree} />
           </DisabledAction>
-          <DisabledAction label="Download">
+          <button
+            className="btn-icon"
+            aria-label={
+              readOffline().some((item) => item.id === track.id) ? 'Download saved' : 'Download'
+            }
+            onClick={() => void downloadTrack()}
+          >
             <Icon icon={DownloadSimple} />
-          </DisabledAction>
+          </button>
           <button
             className="btn-icon"
             aria-label={player.muted ? 'Unmute' : 'Mute'}
@@ -446,14 +514,34 @@ export function PlayerChrome() {
                       >
                         Queue
                       </button>
+                      {me?.showLyrics !== false ? (
+                        <button
+                          className="menu-item"
+                          onClick={() => {
+                            void player.showLyrics();
+                            setMenuOpen(false);
+                          }}
+                        >
+                          Lyrics
+                        </button>
+                      ) : null}
                       <button
                         className="menu-item"
                         onClick={() => {
-                          void player.showLyrics();
+                          void openPlaylists();
                           setMenuOpen(false);
                         }}
                       >
-                        Lyrics
+                        Add to playlist
+                      </button>
+                      <button
+                        className="menu-item"
+                        onClick={() => {
+                          void downloadTrack();
+                          setMenuOpen(false);
+                        }}
+                      >
+                        Download
                       </button>
                     </div>
                   )}
@@ -475,13 +563,10 @@ export function PlayerChrome() {
                         {track.artist}
                       </Link>
                     </div>
-                    <button
-                      className="btn-icon player-gated"
-                      aria-label="Favourite"
-                      onClick={() => player.openGate('favourite')}
-                    >
-                      <Icon icon={Heart} />
-                    </button>
+                    <FavoriteButton
+                      track={track}
+                      onGuestClick={() => player.openGate('favourite')}
+                    />
                   </div>
                   <ProgressBar
                     currentTime={player.currentTime}
@@ -508,16 +593,18 @@ export function PlayerChrome() {
                       onChange={(event) => player.setVolume(Number(event.target.value))}
                     />
                     <span>{Math.round(player.volume * 100)}%</span>
-                    <button
-                      className="btn-icon"
-                      aria-label="Lyrics"
-                      onClick={() => void player.showLyrics()}
-                    >
-                      <Icon icon={MicrophoneStage} />
-                    </button>
+                    {me?.showLyrics !== false ? (
+                      <button
+                        className="btn-icon"
+                        aria-label="Lyrics"
+                        onClick={() => void player.showLyrics()}
+                      >
+                        <Icon icon={MicrophoneStage} />
+                      </button>
+                    ) : null}
                   </div>
                   <div className="fullplayer-discovery">
-                    <LyricsPreview />
+                    {me?.showLyrics !== false ? <LyricsPreview /> : null}
                     <UpNext />
                   </div>
                   {sleepMinutes !== null && sleepMinutes >= 0 && (
@@ -565,6 +652,72 @@ export function PlayerChrome() {
           </section>
         </div>
       )}
+      {playlistOpen ? (
+        <div className="sheet-backdrop" role="presentation" onClick={() => setPlaylistOpen(false)}>
+          <section
+            className="queue-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Add to playlist"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <header>
+              <h2>Add to playlist</h2>
+              <button
+                className="btn-icon"
+                aria-label="Close"
+                onClick={() => setPlaylistOpen(false)}
+              >
+                <Icon icon={X} />
+              </button>
+            </header>
+            {playlists.length ? (
+              playlists.map((item) => (
+                <button
+                  className="menu-item"
+                  key={item.id}
+                  onClick={() => void addToPlaylist(item.id)}
+                >
+                  {item.name}
+                </button>
+              ))
+            ) : (
+              <p>Create a playlist in Your Library first.</p>
+            )}
+            <Link href="/library">Open Library</Link>
+          </section>
+        </div>
+      ) : null}
+      {actionMessage ? (
+        <div
+          className="player-status"
+          role="status"
+          onClick={() => {
+            setActionMessage('');
+            setDownloadProgress(null);
+          }}
+        >
+          {downloadProgress !== null && downloadProgress < 100 ? (
+            <svg
+              className="download-ring"
+              viewBox="0 0 24 24"
+              role="img"
+              aria-label={`${downloadProgress}%`}
+            >
+              <circle className="download-ring-track" cx="12" cy="12" r="9" />
+              <circle
+                className="download-ring-value"
+                cx="12"
+                cy="12"
+                r="9"
+                strokeDasharray="56.55"
+                strokeDashoffset={56.55 * (1 - downloadProgress / 100)}
+              />
+            </svg>
+          ) : null}
+          {actionMessage}
+        </div>
+      ) : null}
     </>
   );
 }

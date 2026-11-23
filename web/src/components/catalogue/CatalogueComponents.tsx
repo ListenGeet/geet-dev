@@ -1,11 +1,111 @@
 'use client';
 
-import { Play } from '@phosphor-icons/react';
+import { Heart, Play } from '@phosphor-icons/react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { Icon } from '@/components/Icon';
 import { usePlayer } from '@/components/player/PlayerProvider';
 import type { Track } from '@/components/player/types';
+import { useMe } from '@/components/auth/MeProvider';
+
+const favoriteCache: {
+  profileId: string | null;
+  ids: Set<string> | null;
+  pending: Promise<Set<string>> | null;
+} = { profileId: null, ids: null, pending: null };
+
+export function FavoriteButton({
+  track,
+  onGuestClick,
+}: {
+  track: Track;
+  onGuestClick?: () => void;
+}) {
+  const { api, status, me } = useMe();
+  const [saved, setSaved] = useState(false);
+  const [known, setKnown] = useState(false);
+  useEffect(() => {
+    if (status !== 'ready' || !me) return;
+    let active = true;
+    if (favoriteCache.profileId !== me.id) {
+      favoriteCache.profileId = me.id;
+      favoriteCache.ids = null;
+      favoriteCache.pending = null;
+    }
+    const load = favoriteCache.ids
+      ? Promise.resolve(favoriteCache.ids)
+      : (favoriteCache.pending ??= api<{ items: { track_id: string }[] }>('/api/favorites').then(
+          ({ items }) => {
+            const ids = new Set(items.map((item) => item.track_id));
+            favoriteCache.ids = ids;
+            return ids;
+          },
+        ));
+    void load
+      .then((ids) => {
+        if (active) {
+          setSaved(ids.has(track.id));
+          setKnown(true);
+        }
+      })
+      .catch(() => undefined);
+    const changed = (event: Event) => {
+      const detail = (event as CustomEvent<{ id: string; saved: boolean }>).detail;
+      if (detail?.id === track.id) setSaved(detail.saved);
+    };
+    window.addEventListener('geet:favorite-change', changed);
+    return () => {
+      active = false;
+      window.removeEventListener('geet:favorite-change', changed);
+    };
+  }, [api, me, status, track.id]);
+  async function toggle() {
+    if (status !== 'ready') {
+      if (onGuestClick) onGuestClick();
+      else window.location.assign('/sign-in');
+      return;
+    }
+    const previous = saved;
+    setKnown(true);
+    setSaved(!previous);
+    if (favoriteCache.ids) {
+      if (previous) favoriteCache.ids.delete(track.id);
+      else favoriteCache.ids.add(track.id);
+    }
+    window.dispatchEvent(
+      new CustomEvent('geet:favorite-change', { detail: { id: track.id, saved: !previous } }),
+    );
+    try {
+      await api('/api/favorites', {
+        method: previous ? 'DELETE' : 'POST',
+        body: { trackId: track.id },
+      });
+    } catch {
+      setSaved(previous);
+      if (favoriteCache.ids) {
+        if (previous) favoriteCache.ids.add(track.id);
+        else favoriteCache.ids.delete(track.id);
+      }
+      window.dispatchEvent(
+        new CustomEvent('geet:favorite-change', { detail: { id: track.id, saved: previous } }),
+      );
+    }
+  }
+  return (
+    <button
+      className={`btn-icon ${saved ? 'is-on' : ''}`}
+      type="button"
+      aria-label={
+        saved ? `Remove ${track.title} from favourites` : `Add ${track.title} to favourites`
+      }
+      aria-pressed={known ? saved : false}
+      onClick={() => void toggle()}
+    >
+      <Icon icon={Heart} />
+    </button>
+  );
+}
 
 export function CoverCard({
   track,
@@ -102,6 +202,7 @@ export function TrackRows({
           >
             <Icon icon={Play} size={20} />
           </button>
+          <FavoriteButton track={track} onGuestClick={() => player.openGate('favourite')} />
         </div>
       ))}
     </div>

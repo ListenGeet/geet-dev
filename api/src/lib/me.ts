@@ -43,6 +43,9 @@ export function toMe(row: ProfileRow, counts: MeDto['counts']): MeDto {
     showListening: row.show_listening,
     acceptRequests: row.accept_requests,
     emailNews: row.email_news,
+    autoplaySimilar: row.autoplay_similar,
+    showLyrics: row.show_lyrics,
+    keepScreenAwake: row.keep_screen_awake,
     onboarded: row.onboarded_at !== null,
     usernameChangeableAt: usernameChangeableAt(row),
     counts,
@@ -66,6 +69,9 @@ export function patchToColumns(
     c.email_news = patch.emailNews;
     c.email_news_at = now.toISOString();
   }
+  if (patch.autoplaySimilar !== undefined) c.autoplay_similar = patch.autoplaySimilar;
+  if (patch.showLyrics !== undefined) c.show_lyrics = patch.showLyrics;
+  if (patch.keepScreenAwake !== undefined) c.keep_screen_awake = patch.keepScreenAwake;
   if (patch.onboarded && row.onboarded_at === null) c.onboarded_at = now.toISOString();
   return c;
 }

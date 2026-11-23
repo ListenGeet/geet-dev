@@ -465,6 +465,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [panelTab, setPanelTab] = useState('now');
   const [scrolled, setScrolled] = useState(false);
   const [toast, setToast] = useState('');
+  const [offline, setOffline] = useState(false);
   const { status } = useMe();
   const bare =
     pathname.startsWith('/sign-in') ||
@@ -478,6 +479,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     ['/terms', '/privacy', '/copyright'].includes(pathname);
 
   useEffect(() => {
+    setOffline(!navigator.onLine);
+    const connection = () => setOffline(!navigator.onLine);
     try {
       setPanelOpen(localStorage.getItem('geet-right-panel') === '1');
     } catch {
@@ -497,10 +500,14 @@ export function AppShell({ children }: { children: ReactNode }) {
       toastTimer = window.setTimeout(() => setToast(''), 4000);
     };
     window.addEventListener('geet:right-panel-toggle', listen);
+    window.addEventListener('online', connection);
+    window.addEventListener('offline', connection);
     window.addEventListener('scroll', scroll, { passive: true });
     window.addEventListener('geet:toast', showToast);
     return () => {
       window.removeEventListener('geet:right-panel-toggle', listen);
+      window.removeEventListener('online', connection);
+      window.removeEventListener('offline', connection);
       window.removeEventListener('scroll', scroll);
       window.removeEventListener('geet:toast', showToast);
       window.clearTimeout(toastTimer);
@@ -535,6 +542,11 @@ export function AppShell({ children }: { children: ReactNode }) {
           )}
         </div>
       </header>
+      {offline ? (
+        <div className="offline-banner" role="status">
+          You’re offline · Downloads are available in Your Library
+        </div>
+      ) : null}
       <div className="tablet-rail">
         <Link className="rail-logo" href="/" aria-label="Geet home">
           <img src="/icons/icon-192.png" alt="" width={40} height={40} />
