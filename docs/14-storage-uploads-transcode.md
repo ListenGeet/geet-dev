@@ -96,8 +96,12 @@ The worker is any process that can call the four endpoints and run ffmpeg. It ca
 ## Covers, promos, and lyrics
 - **Cover URL for the app:** `GET /api/cover/{trackId}` returns a `302` to a signed cover URL with `Cache-Control: public, max-age=86400` so the browser and the service worker cache it. The web app rewrites `/api/cover/*` to the API so it stays same-origin for `sw.js` (doc 06).
 - **Promo images:** admin uploads via signed URL to `promos/<id>.jpg`; the promos list endpoint returns signed image URLs valid 3 days, cached 1 hour.
-- **Lyrics lookup:** once a track is ready, the API uses the `lyrics-lib` package (LyricsLIB) to look up lyrics in LRCLIB by title and artist. If LRCLIB has no match or is unavailable, it tries `GET https://api.lyrics.ovh/v1/{artist}/{title}`. Both lookups are best-effort: no match or provider failure leaves the track ready and preserves any existing lyrics. LyricsLIB returns plain or LRC text; the API normalizes timestamped lines to `{t_ms, line}` and records the source as `lrclib` or `lyrics_ovh` in `track_lyrics.source`.
+- **Lyrics lookup:** once a track is ready, the API looks up lyrics in LRCLIB by title and artist, preferring its timestamped LRC response when available. If LRCLIB has no match or is unavailable, it tries `GET https://api.lyrics.ovh/v1/{artist}/{title}`. Both lookups are best-effort: no match or provider failure leaves the track ready and preserves any existing lyrics. The API stores timestamped lines as `{t_ms, line}` in `track_lyrics.synced` and records the source as `lrclib` or `lyrics_ovh` in `track_lyrics.source`.
 - **Lyrics API:** `GET /api/lyrics/{trackId}` returns `{lyrics: {plain, synced, source}}` or `{lyrics: null}`, public for ready tracks, cached (the service worker keeps a copy). `source` is `lrclib`, `lyrics_ovh`, or `uploader` for existing manually supplied lyrics.
+
+### Backfill timestamps for existing LRCLIB lyrics
+
+Existing rows with `source='lrclib'` and `synced is null` are not refreshed during playback. After deploying the lyrics lookup fix, run the root `lyrics:backfill` command from a trusted machine with `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` set. It reports the number of eligible rows without writing by default; add `--apply` to look up timestamped LRCLIB lyrics and update only each row's `synced` field. Rows with no timestamped LRCLIB result, including plain-only Lyrics.ovh or uploader lyrics, remain unchanged.
 
 ## Egress estimation
 Each time a download URL for audio is issued, `record_egress(provider, file size)` adds to `egress_daily`. This is an estimate (a user may not finish the file, or may seek). It is used for the admin meter and the cap rule in doc 12.

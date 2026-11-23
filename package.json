@@ -21,6 +21,7 @@
     "test": "npm run test --workspaces --if-present",
     "test:sql": "node scripts/test-sql.mjs",
     "test:supabase": "node scripts/test-supabase.mjs",
+    "lyrics:backfill": "node scripts/backfill-synced-lyrics.mjs",
     "build": "npm run build --workspaces --if-present",
     "storage:migrate": "node scripts/storage-migrate.mjs",
     "seed:tones": "node scripts/seed-tones.mjs",
