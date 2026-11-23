@@ -468,7 +468,7 @@ export function PlayerChrome() {
               </div>
             </header>
             {player.lyricsOpen && player.lyrics ? (
-              <LyricsView sleepMinutes={sleepMinutes} setSleepMinutes={setSleepMinutes} />
+              <LyricsView />
             ) : (
               <div className="fullplayer-body">
                 <div className="fullplayer-art">
@@ -672,13 +672,7 @@ function UpNext() {
   );
 }
 
-function LyricsView({
-  sleepMinutes,
-  setSleepMinutes,
-}: {
-  sleepMinutes: number | null;
-  setSleepMinutes: (value: number | null) => void;
-}) {
+function LyricsView() {
   const player = usePlayer();
   const activeLineRef = useRef<HTMLButtonElement>(null);
   const manualUntil = useRef(0);
@@ -715,9 +709,6 @@ function LyricsView({
           </>
         ) : null}
       </header>
-      <div className="lyrics-side">
-        <SleepTimerButton sleepMinutes={sleepMinutes} setSleepMinutes={setSleepMinutes} />
-      </div>
       <div
         className="lyrics-scroll"
         onWheel={() => {
