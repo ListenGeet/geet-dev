@@ -42,7 +42,7 @@ begin
   delete from public.search_history where created_at < now() - interval '12 months';
   delete from public.rate_limits where window_start < now() - interval '1 day';
   delete from public.email_log where created_at < now() - interval '90 days';
-  delete from public.sign_in_devices where last_seen_at < now() - interval '90 days';
+  delete from public.sign_in_devices where last_seen < now() - interval '90 days';
   delete from public.upload_jobs where state in ('done', 'failed') and updated_at < now() - interval '14 days';
   update public.jams set ended_at = now(), is_playing = false, version = version + 1
     where ended_at is null and updated_at < now() - interval '6 hours';

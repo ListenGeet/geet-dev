@@ -70,9 +70,12 @@ select t.assert((select name from playlists where id = '00000000-0000-0000-0000-
 select t.as_user('user_b');
 select t.assert(t.sqlstate_of($q$insert into playlist_tracks values ('00000000-0000-0000-0000-0000000000b1', '00000000-0000-0000-0000-0000000000a1', 2)$q$) = '42501',
   'B cannot add a song to A''s playlist');
-select t.assert(t.sqlstate_of($q$delete from favorites where profile_id = (select a from ids)$q$) = 'ok'
-  and exists (select 1 from favorites where profile_id = (select a from ids)),
-  'B cannot remove A''s favourite');
+select t.assert(t.sqlstate_of($q$delete from favorites where profile_id = (select a from ids)$q$) in ('ok', '42501'),
+  'B cannot delete A''s favourite');
+select t.as_super();
+select t.assert(exists (select 1 from favorites where profile_id = (select a from ids)),
+  'A''s favourite remains after B''s delete attempt');
+select t.as_user('user_b');
 
 -- A stranger cannot read messages or write one; a friend can read and write.
 select t.as_user('user_c');
