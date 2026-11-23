@@ -91,7 +91,10 @@ for (let offset = 0; ; offset += pageSize) {
   const { data: rows, error: lyricsError } = await db
     .from('track_lyrics')
     .select('track_id,source,synced')
-    .in('track_id', tracks.map(({ id }) => id));
+    .in(
+      'track_id',
+      tracks.map(({ id }) => id),
+    );
   if (lyricsError) throw new Error(`Could not read lyrics: ${lyricsError.message}`);
 
   const lyricsById = new Map((rows ?? []).map((row) => [row.track_id, row]));
@@ -119,10 +122,9 @@ for (let offset = 0; ; offset += pageSize) {
           if (error) throw new Error(error.message);
           updated += 1;
         } else if (found && !track.hasLyricsRow) {
-          const { error } = await db.from('track_lyrics').upsert(
-            { track_id: track.id, ...found },
-            { onConflict: 'track_id' },
-          );
+          const { error } = await db
+            .from('track_lyrics')
+            .upsert({ track_id: track.id, ...found }, { onConflict: 'track_id' });
           if (error) throw new Error(error.message);
           if (found.synced?.length) updated += 1;
           else created += 1;

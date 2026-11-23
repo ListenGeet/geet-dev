@@ -403,13 +403,6 @@ export function PlayerChrome() {
       {player.fullOpen && (
         <div
           className="fullplayer-backdrop"
-          style={
-            {
-              '--player-artwork': track.coverUrl
-                ? `url(${JSON.stringify(track.coverUrl)})`
-                : 'none',
-            } as React.CSSProperties
-          }
           role="presentation"
           onClick={() => player.showFull(false)}
         >
@@ -719,7 +712,9 @@ function LyricsView() {
         }}
       >
         {player.lyricsLoading ? (
-          <p className="lyrics-message" role="status">Loading lyrics…</p>
+          <p className="lyrics-message" role="status">
+            Loading lyrics…
+          </p>
         ) : !player.lyrics?.synced?.length && !player.lyrics?.plain ? (
           <p className="lyrics-message">Lyrics aren’t available for this song yet.</p>
         ) : player.lyrics?.synced?.length ? (
