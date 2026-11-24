@@ -58,6 +58,9 @@ export default function JamRoomPage({ params }: { params: Promise<{ id: string }
 
   const isHost = jam?.hostId === me?.id;
   const canControl = isHost || jam?.controls === 'everyone';
+  const localNeedsPlayback = Boolean(
+    jam?.isPlaying && jam.trackId && (player.track?.id !== jam.trackId || !player.isPlaying),
+  );
 
   const loadJam = async () => {
     if (status !== 'ready') return;
@@ -122,10 +125,7 @@ export default function JamRoomPage({ params }: { params: Promise<{ id: string }
   }, [clockCalibrated, jam]);
 
   useEffect(() => {
-    if (status !== 'ready' || !jam?.trackId || player.track?.id === jam.trackId) {
-      if (jam?.trackId === player.track?.id) syncingTrackRef.current = null;
-      return;
-    }
+    if (status !== 'ready' || !jam?.trackId || player.track?.id === jam.trackId) return;
     if (syncingTrackRef.current === jam.trackId) return;
 
     const trackId = jam.trackId;
@@ -243,7 +243,13 @@ export default function JamRoomPage({ params }: { params: Promise<{ id: string }
   };
 
   const handleTogglePlay = async () => {
-    if (!canControl) {
+    if (!jam) return;
+
+    const queuedSong = jam.queue[0];
+    const isRecoveringQueuedTrack = jam.isPlaying && !jam.trackId && Boolean(queuedSong);
+    const isResumingLocally = jam.isPlaying && localNeedsPlayback;
+
+    if (!canControl && !isResumingLocally) {
       window.dispatchEvent(
         new CustomEvent('geet:toast', {
           detail: 'Only the host can change songs. Leave the jam to play your own.',
@@ -251,15 +257,45 @@ export default function JamRoomPage({ params }: { params: Promise<{ id: string }
       );
       return;
     }
-    if (!jam) return;
 
-    const nextIsPlaying = !jam.isPlaying;
+    const trackId = jam.trackId ?? queuedSong?.trackId ?? undefined;
+    const track =
+      jam.currentTrack?.id === trackId
+        ? jam.currentTrack
+        : queuedSong && queuedSong.trackId === trackId
+          ? queuedSong.track
+          : null;
+
+    if (isResumingLocally) {
+      if (track && !player.isLoading) startJamTrackLocally(track);
+      return;
+    }
+
+    const nextIsPlaying = isRecoveringQueuedTrack || !jam.isPlaying;
+    if (nextIsPlaying && !trackId) {
+      window.dispatchEvent(
+        new CustomEvent('geet:toast', { detail: 'Add a song to the jam before pressing play.' }),
+      );
+      return;
+    }
+
+    if (nextIsPlaying && !jam.trackId && queuedSong) {
+      await handleSkipNext();
+      return;
+    }
+
+    if (nextIsPlaying && track) {
+      startJamTrackLocally(track);
+    } else if (!nextIsPlaying && player.track?.id === jam.trackId && player.isPlaying) {
+      void player.toggle();
+    }
+
     try {
       const res = await api<JamSnapshot>(`/api/jams/${jamId}/state`, {
         method: 'POST',
         body: {
-          trackId: jam.trackId ?? undefined,
-          positionMs: Math.round(player.currentTime * 1000),
+          trackId,
+          positionMs: trackId === jam.trackId ? Math.round(player.currentTime * 1000) : 0,
           isPlaying: nextIsPlaying,
           expectedVersion: jam.version,
         },
@@ -269,6 +305,21 @@ export default function JamRoomPage({ params }: { params: Promise<{ id: string }
       // re-sync snapshot
       void loadJam();
     }
+  };
+
+  const startJamTrackLocally = (track: Track) => {
+    if (player.track?.id === track.id) {
+      if (!player.isPlaying) void player.toggle();
+      return;
+    }
+
+    syncingTrackRef.current = track.id;
+    void player.playTrack(track).finally(() => {
+      if (syncingTrackRef.current === track.id) {
+        syncingTrackRef.current = null;
+        setJam((current) => (current ? { ...current } : current));
+      }
+    });
   };
 
   const handleSeek = async (seconds: number) => {
@@ -296,6 +347,7 @@ export default function JamRoomPage({ params }: { params: Promise<{ id: string }
     if (jam.queue.length > 0) {
       const nextSong = jam.queue[0];
       if (!nextSong) return;
+      startJamTrackLocally(nextSong.track);
       try {
         await api(`/api/jams/${jamId}/queue/${nextSong.id}`, { method: 'DELETE' });
         const res = await api<JamSnapshot>(`/api/jams/${jamId}/state`, {
@@ -587,12 +639,14 @@ export default function JamRoomPage({ params }: { params: Promise<{ id: string }
         <button
           type="button"
           className="btn-play-jam-72"
-          aria-label={jam.isPlaying ? 'Pause' : 'Play'}
-          disabled={!canControl}
-          style={{ opacity: canControl ? 1 : 0.4 }}
+          aria-label={
+            localNeedsPlayback ? 'Play jam audio on this device' : jam.isPlaying ? 'Pause' : 'Play'
+          }
+          disabled={!canControl && !localNeedsPlayback}
+          style={{ opacity: canControl || localNeedsPlayback ? 1 : 0.4 }}
           onClick={handleTogglePlay}
         >
-          <Icon icon={jam.isPlaying ? Pause : Play} size={32} on />
+          <Icon icon={jam.isPlaying && !localNeedsPlayback ? Pause : Play} size={32} on />
         </button>
 
         <button
@@ -606,6 +660,12 @@ export default function JamRoomPage({ params }: { params: Promise<{ id: string }
           <Icon icon={SkipForward} size={28} />
         </button>
       </div>
+
+      {localNeedsPlayback && (
+        <p className="jam-local-playback-hint" role="status">
+          Tap play to hear the jam on this device.
+        </p>
+      )}
 
       {/* 6. Invite Button */}
       <div className="jam-invite-strip">

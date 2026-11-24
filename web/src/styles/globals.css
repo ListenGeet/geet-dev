@@ -5361,6 +5361,12 @@ h2 {
 .jam-transport-row .btn-icon:hover:not(:disabled) {
   color: var(--text);
 }
+.jam-local-playback-hint {
+  margin: 0 auto 6px;
+  color: var(--text-2);
+  font-size: 12px;
+  text-align: center;
+}
 .btn-play-jam-72 {
   display: grid;
   width: 60px;
