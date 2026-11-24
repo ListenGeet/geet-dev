@@ -25,6 +25,10 @@ insert into conversations (id, user_a, user_b)
   select '00000000-0000-0000-0000-0000000000c1', least(a, b), greatest(a, b) from ids;
 insert into messages (id, conversation_id, sender_id, body)
   select '00000000-0000-0000-0000-0000000000d1', '00000000-0000-0000-0000-0000000000c1', a, 'hello' from ids;
+insert into conversation_reads (conversation_id, profile_id)
+  select '00000000-0000-0000-0000-0000000000c1', a from ids;
+insert into suggestions (from_id, to_id, track_id, note)
+  select a, b, '00000000-0000-0000-0000-0000000000a1', 'Try this song' from ids;
 insert into jams (id, code, host_id) select '00000000-0000-0000-0000-0000000000e1', 'ABCDEF', a from ids;
 insert into jam_members (jam_id, profile_id) select '00000000-0000-0000-0000-0000000000e1', a from ids;
 -- server-only rows
@@ -58,6 +62,14 @@ select t.assert((select count(*) from favorites) = 0, 'B cannot read A''s favour
 select t.assert((select count(*) from playlists) = 0, 'B cannot read A''s playlists');
 select t.assert((select count(*) from playlist_tracks) = 0, 'B cannot read A''s playlist tracks');
 select t.assert((select count(*) from play_history) = 0, 'B cannot read A''s history');
+select t.assert((select count(*) from friendships) = 1, 'a friend can read their friendship row');
+select t.assert((select count(*) from suggestions) = 1, 'a suggestion recipient can read the suggestion');
+select t.assert((select count(*) from conversation_reads) = 0, 'conversation read cursors are server-only');
+select t.assert(t.sqlstate_of($q$insert into friendships (requester_id, addressee_id, status)
+  select a, c, 'pending' from ids$q$) = '42501', 'B cannot create a request as A');
+select t.assert(t.sqlstate_of($q$insert into suggestions (from_id, to_id, track_id)
+  select a, b, '00000000-0000-0000-0000-0000000000a1' from ids$q$) = '42501',
+  'B cannot create a suggestion as A');
 select t.assert(t.sqlstate_of($q$insert into favorites select a, '00000000-0000-0000-0000-0000000000a1' from ids$q$) in ('42501', '23505'),
   'B cannot write a favourite for A');
 select t.assert(t.sqlstate_of($q$insert into playlists (owner_id, name) select a, 'Spoofed' from ids$q$) = '42501',
@@ -79,8 +91,11 @@ select t.as_user('user_b');
 
 -- A stranger cannot read messages or write one; a friend can read and write.
 select t.as_user('user_c');
+select t.assert((select count(*) from friendships) = 0, 'a stranger cannot read friendships');
+select t.assert((select count(*) from suggestions) = 0, 'a stranger cannot read suggestions');
 select t.assert((select count(*) from messages) = 0, 'a stranger cannot read messages');
 select t.assert((select count(*) from conversations) = 0, 'a stranger cannot read conversations');
+select t.assert((select count(*) from conversation_reads) = 0, 'a stranger cannot read conversation cursors');
 select t.assert(
   t.sqlstate_of($q$insert into messages (conversation_id, sender_id, body)
     select '00000000-0000-0000-0000-0000000000c1', c, 'hi' from ids$q$) = '42501',
@@ -114,9 +129,24 @@ select t.as_super();
 select t.as_user('user_c');
 select t.assert((select count(*) from jams) = 0, 'a non-member cannot read a jam');
 select t.assert((select count(*) from jam_members) = 0, 'a non-member cannot read jam members');
+select t.assert((select count(*) from jam_queue) = 0, 'a non-member cannot read jam queue');
+select t.assert(
+  t.sqlstate_of($q$insert into jam_queue (jam_id, track_id, position) select '00000000-0000-0000-0000-0000000000e1', '00000000-0000-0000-0000-0000000000a1', 0$q$) = '42501',
+  'a non-member cannot add to jam queue');
 select t.as_user('user_a');
 select t.assert((select count(*) from jams) = 1, 'a member can read the jam');
 select t.assert(t.sqlstate_of($q$update jams set is_playing = true$q$) = '42501', 'clients cannot update a jam directly');
+
+-- Notifications: own row only
+select t.as_super();
+insert into notifications (profile_id, actor_id, kind) select a, b, 'friend_request' from ids;
+select t.as_user('user_c');
+select t.assert((select count(*) from notifications) = 0, 'a stranger cannot read notifications');
+select t.as_user('user_a');
+select t.assert((select count(*) from notifications) = 1, 'recipient can read own notifications');
+select t.assert(t.sqlstate_of($q$update notifications set read_at = now()$q$) = 'ok', 'recipient can update read_at on own notifications');
+select t.assert(t.sqlstate_of($q$delete from notifications$q$) = '42501', 'client cannot delete notifications directly');
+select t.as_super();
 
 -- Catalogue visibility.
 select t.as_anon();

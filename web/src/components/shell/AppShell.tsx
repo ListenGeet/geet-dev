@@ -20,6 +20,7 @@ import { useMe } from '@/components/auth/MeProvider';
 import { PlayerChrome } from '@/components/player/PlayerChrome';
 import { usePlayer } from '@/components/player/PlayerProvider';
 import { useLocale, type Language } from '@/lib/locale';
+import { NotificationsSheet } from '@/components/social/NotificationsSheet';
 
 const tabs = [
   { href: '/', key: 'home' as const, Icon: House },
@@ -141,7 +142,13 @@ function AskTab({ active, label }: { active: boolean; label: string }) {
   );
 }
 
-function NavItems({ mode }: { mode: 'bottom' | 'rail' | 'side' }) {
+function NavItems({
+  mode,
+  unreadFriends = 0,
+}: {
+  mode: 'bottom' | 'rail' | 'side';
+  unreadFriends?: number;
+}) {
   const pathname = usePathname();
   const { t } = useLocale();
   return (
@@ -166,6 +173,11 @@ function NavItems({ mode }: { mode: 'bottom' | 'rail' | 'side' }) {
             ) : (
               <span className="tab-icon">
                 <Icon icon={Glyph} on={active} />
+                {key === 'friends' && unreadFriends > 0 ? (
+                  <span className="nav-badge" aria-label={`${unreadFriends} unread`}>
+                    {unreadFriends > 9 ? '9+' : unreadFriends}
+                  </span>
+                ) : null}
                 {active ? <span className="active-tab-bar" /> : null}
               </span>
             )}
@@ -244,7 +256,15 @@ function Footer() {
   );
 }
 
-function DesktopHeader({ togglePanel }: { togglePanel: () => void }) {
+function DesktopHeader({
+  togglePanel,
+  openNotifications,
+  unreadNotifications = 0,
+}: {
+  togglePanel: () => void;
+  openNotifications: () => void;
+  unreadNotifications?: number;
+}) {
   const router = useRouter();
   const { status } = useMe();
   const player = usePlayer();
@@ -327,8 +347,13 @@ function DesktopHeader({ togglePanel }: { togglePanel: () => void }) {
           </>
         ) : (
           <>
-            <button className="btn-icon" aria-label="Notifications">
+            <button
+              className="btn-icon header-bell-btn"
+              aria-label="Notifications"
+              onClick={openNotifications}
+            >
               <Icon icon={Bell} />
+              {unreadNotifications > 0 ? <span className="notification-dot" /> : null}
             </button>
             <AccountMenu />
           </>
@@ -466,7 +491,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [scrolled, setScrolled] = useState(false);
   const [toast, setToast] = useState('');
   const [offline, setOffline] = useState(false);
-  const { status } = useMe();
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [unreadSocial, setUnreadSocial] = useState(0);
+  const { api, status } = useMe();
   const bare =
     pathname.startsWith('/sign-in') ||
     pathname.startsWith('/sign-up') ||
@@ -477,6 +505,32 @@ export function AppShell({ children }: { children: ReactNode }) {
     pathname.startsWith('/t/') ||
     pathname.startsWith('/u/') ||
     ['/terms', '/privacy', '/copyright'].includes(pathname);
+
+  useEffect(() => {
+    if (status !== 'ready') return;
+    void api<{ unreadCount: number }>('/api/notifications')
+      .then((d) => setUnreadNotifications(d.unreadCount ?? 0))
+      .catch(() => undefined);
+  }, [status, api]);
+
+  useEffect(() => {
+    if (status !== 'ready') return;
+    const refreshSocialUnread = () => {
+      void Promise.all([
+        api<{ items: { unreadCount: number }[] }>('/api/conversations'),
+        api<{ requests: unknown[] }>('/api/friends'),
+      ])
+        .then(([conversations, friends]) => {
+          const messages = conversations.items.reduce((sum, item) => sum + item.unreadCount, 0);
+          setUnreadSocial(messages + friends.requests.length);
+        })
+        .catch(() => undefined);
+    };
+    const refresh = () => refreshSocialUnread();
+    refreshSocialUnread();
+    window.addEventListener('geet:refresh-social-unread', refresh);
+    return () => window.removeEventListener('geet:refresh-social-unread', refresh);
+  }, [status, api]);
 
   useEffect(() => {
     setOffline(!navigator.onLine);
@@ -534,8 +588,13 @@ export function AppShell({ children }: { children: ReactNode }) {
             </>
           ) : (
             <>
-              <button className="btn-icon" aria-label="Notifications">
+              <button
+                className="btn-icon header-bell-btn"
+                aria-label="Notifications"
+                onClick={() => setNotificationsOpen(true)}
+              >
                 <Icon icon={Bell} />
+                {unreadNotifications > 0 ? <span className="notification-dot" /> : null}
               </button>
               <AccountMenu />
             </>
@@ -551,7 +610,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <Link className="rail-logo" href="/" aria-label="Geet home">
           <img src="/icons/icon-192.png" alt="" width={40} height={40} />
         </Link>
-        <NavItems mode="rail" />
+        <NavItems mode="rail" unreadFriends={unreadSocial} />
         <div className="rail-account">
           <AccountMenu />
         </div>
@@ -560,7 +619,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <Link className="sidebar-logo" href="/">
           <img src="/brand/geet-wordmark-white.png" alt="Geet" width={92} height={30} />
         </Link>
-        <NavItems mode="side" />
+        <NavItems mode="side" unreadFriends={unreadSocial} />
         <div className="sidebar-library">
           <h2>Your library</h2>
           <Link href="/library">Favourites</Link>
@@ -575,6 +634,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="shell-center">
         <DesktopHeader
           togglePanel={() => window.dispatchEvent(new Event('geet:right-panel-toggle'))}
+          openNotifications={() => setNotificationsOpen(true)}
+          unreadNotifications={unreadNotifications}
         />
         <div className="shell-columns">
           <main className="app-main">
@@ -597,7 +658,14 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </div>
       <PlayerChrome />
-      <NavItems mode="bottom" />
+      {!pathname.startsWith('/chat/') ? (
+        <NavItems mode="bottom" unreadFriends={unreadSocial} />
+      ) : null}
+      <NotificationsSheet
+        isOpen={notificationsOpen}
+        onClose={() => setNotificationsOpen(false)}
+        onUnreadChange={setUnreadNotifications}
+      />
       {toast ? (
         <div className="app-toast" role="status">
           {toast}

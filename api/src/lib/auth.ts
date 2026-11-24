@@ -4,6 +4,8 @@ import { allowedOrigins } from './cors';
 export interface Caller {
   /** Clerk user id, `user_…`. */
   sub: string;
+  /** Clerk session id, `sess_…`. */
+  sid?: string;
 }
 
 /**
@@ -21,7 +23,12 @@ export async function authenticate(request: Request): Promise<Caller | null> {
       secretKey,
       authorizedParties: allowedOrigins(),
     });
-    return typeof claims.sub === 'string' && claims.sub !== '' ? { sub: claims.sub } : null;
+    return typeof claims.sub === 'string' && claims.sub !== ''
+      ? {
+          sub: claims.sub,
+          sid: typeof claims.sid === 'string' ? claims.sid : undefined,
+        }
+      : null;
   } catch {
     return null;
   }

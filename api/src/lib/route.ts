@@ -2,10 +2,12 @@ import { authenticate } from './auth';
 import { fail, type ErrorCode } from './http';
 import { loadOrCreateProfile } from './me';
 import { rateLimitHit, type ProfileRow } from './repo';
+import { recordSignInDevice } from './social-repo';
 import { clientIp } from './http';
 
 export interface UserContext {
   sub: string;
+  sid?: string;
   profile: ProfileRow;
 }
 
@@ -50,7 +52,15 @@ export function withUser<A extends unknown[]>(
       const profile = await loadOrCreateProfile(caller.sub);
       if (options.admin && profile.role !== 'admin')
         return fail(request, 'forbidden', 'This is for admins.');
-      return await handler(request, { sub: caller.sub, profile }, ...args);
+      const userAgent = request.headers.get('user-agent') ?? '';
+      const city = request.headers.get('x-vercel-ip-city') ?? null;
+      const country = request.headers.get('x-vercel-ip-country') ?? null;
+      if (caller.sid && userAgent) {
+        void recordSignInDevice(profile.id, caller.sub, caller.sid, userAgent, city, country).catch(
+          () => undefined,
+        );
+      }
+      return await handler(request, { sub: caller.sub, sid: caller.sid, profile }, ...args);
     } catch (err) {
       return serverError(request, err);
     }

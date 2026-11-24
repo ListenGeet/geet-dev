@@ -100,3 +100,39 @@ self.addEventListener('fetch', (e) => {
     }));
   }
 });
+
+self.addEventListener('push', (e) => {
+  if (!e.data) return;
+  try {
+    const payload = e.data.json();
+    const title = payload.title || 'Geet';
+    const options = {
+      body: payload.body || '',
+      icon: payload.icon || '/icons/icon-192.png',
+      badge: payload.badge || '/icons/icon-192.png',
+      data: payload.data || {},
+      tag: payload.tag || undefined,
+    };
+    e.waitUntil(self.registration.showNotification(title, options));
+  } catch (err) {
+    const text = e.data.text();
+    e.waitUntil(self.registration.showNotification('Geet', { body: text, icon: '/icons/icon-192.png' }));
+  }
+});
+
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || '/friends';
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      for (const client of windowClients) {
+        if (client.url === url && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(url);
+      }
+    })
+  );
+});

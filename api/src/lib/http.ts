@@ -1,4 +1,5 @@
 import { corsFor } from './cors';
+export { preflight } from './cors';
 
 export type ErrorCode =
   | 'unauthorized'
