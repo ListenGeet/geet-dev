@@ -33,20 +33,16 @@ function check<T = unknown>(
 }
 
 export async function profileBySubject(sub: string): Promise<ProfileRow | null> {
-  const identity = check<{ profile_id: string }>(
+  const row = check<{ profile: ProfileRow | null }>(
     await db()
       .from('identities')
-      .select('profile_id')
+      .select('profile:profiles!identities_profile_id_fkey(*)')
       .eq('provider', 'clerk')
       .eq('subject', sub)
       .maybeSingle(),
-    'identity lookup',
+    'profile lookup',
   );
-  if (!identity) return null;
-  return check<ProfileRow>(
-    await db().from('profiles').select('*').eq('id', identity.profile_id).maybeSingle(),
-    'profile read',
-  );
+  return row?.profile ?? null;
 }
 
 export async function ensureProfile(

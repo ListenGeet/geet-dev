@@ -14,12 +14,12 @@ export async function GET(request: Request) {
     const blocked = await limited(request, `ip:${clientIp(request)}:home`, 60, 60);
     if (blocked) return blocked;
     const language = new URL(request.url).searchParams.get('language') ?? undefined;
-    const [newTracks, popular, artists] = await Promise.all([
+    const [newTracks, popular, artists, caller] = await Promise.all([
       latestTracks(12, { language }),
       popularTracks(10, language),
       popularArtistCards(language ? [language] : [], 12),
+      authenticate(request),
     ]);
-    const caller = await authenticate(request);
     let personalized = false;
     let jumpBack: ReturnType<typeof toTrackDto>[] = [];
     let dailyMixes: { id: string; name: string; tracks: ReturnType<typeof toTrackDto>[] }[] = [];

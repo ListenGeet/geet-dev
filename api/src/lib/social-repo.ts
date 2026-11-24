@@ -985,17 +985,39 @@ export async function getJamSnapshot(
   if (!membership) return null;
 
   // Active members
-  const { data: members } = await db()
-    .from('jam_members')
-    .select('profile_id, joined_at, left_at')
-    .eq('jam_id', jam.id)
-    .is('left_at', null);
+  const [{ data: members }, { data: queueRows }] = await Promise.all([
+    db()
+      .from('jam_members')
+      .select('profile_id, joined_at, left_at')
+      .eq('jam_id', jam.id)
+      .is('left_at', null),
+    db()
+      .from('jam_queue')
+      .select('id, track_id, position, added_by')
+      .eq('jam_id', jam.id)
+      .order('position', { ascending: true }),
+  ]);
 
   const memberProfileIds = (members ?? []).map((m) => m.profile_id);
-  const { data: memberProfiles } = await db()
-    .from('profiles')
-    .select('id, username, display_name, avatar_url')
-    .in('id', memberProfileIds);
+  const queueTrackIds = [...new Set((queueRows ?? []).map((q) => q.track_id))];
+  if (jam.track_id && !queueTrackIds.includes(jam.track_id)) {
+    queueTrackIds.push(jam.track_id);
+  }
+
+  const [{ data: memberProfiles }, { data: tracks }] = await Promise.all([
+    memberProfileIds.length
+      ? db()
+          .from('profiles')
+          .select('id, username, display_name, avatar_url')
+          .in('id', memberProfileIds)
+      : Promise.resolve({ data: [] }),
+    queueTrackIds.length
+      ? db()
+          .from('tracks')
+          .select('id, title, artist, duration_ms, waveform')
+          .in('id', queueTrackIds)
+      : Promise.resolve({ data: [] }),
+  ]);
 
   const profMap = new Map((memberProfiles ?? []).map((p) => [p.id, p]));
 
@@ -1015,22 +1037,6 @@ export async function getJamSnapshot(
   });
 
   // Jam queue
-  const { data: queueRows } = await db()
-    .from('jam_queue')
-    .select('id, track_id, position, added_by')
-    .eq('jam_id', jam.id)
-    .order('position', { ascending: true });
-
-  const queueTrackIds = [...new Set((queueRows ?? []).map((q) => q.track_id))];
-  if (jam.track_id && !queueTrackIds.includes(jam.track_id)) {
-    queueTrackIds.push(jam.track_id);
-  }
-
-  const { data: tracks } = await db()
-    .from('tracks')
-    .select('id, title, artist, duration_ms, waveform')
-    .in('id', queueTrackIds);
-
   const tracksMap = new Map((tracks ?? []).map((t) => [t.id, t]));
 
   const queueItems = (queueRows ?? []).map((q) => {
