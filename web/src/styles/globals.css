@@ -6063,3 +6063,660 @@ h2 {
     gap: 12px;
   }
 }
+
+/* Jam room layout */
+.jam-room-page:not(.flex-center) {
+  width: min(100%, 1160px);
+  min-height: calc(100dvh - 64px);
+  margin-inline: auto;
+  padding: 12px clamp(16px, 3vw, 36px) 36px;
+  overflow-x: hidden;
+  background: var(--midnight);
+}
+.jam-top-row {
+  min-height: 72px;
+  padding-bottom: 12px;
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+.jam-top-leading,
+.jam-header-actions {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+}
+.jam-top-leading {
+  gap: 12px;
+}
+.jam-collapse-button {
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 50%;
+  color: var(--text-2);
+}
+.jam-collapse-button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+.jam-room-heading {
+  display: grid;
+  gap: 3px;
+}
+.jam-room-heading strong {
+  color: var(--text);
+  font: 700 18px/1.1 var(--font-display);
+}
+.jam-header-actions {
+  gap: 12px;
+}
+.jam-status-pill {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 11px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: var(--radius-pill);
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+.jam-status-pill > span,
+.jam-cover-playing-label > span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-3);
+}
+.jam-status-pill.is-playing {
+  border-color: rgba(255, 220, 0, 0.35);
+  background: rgba(255, 220, 0, 0.08);
+  color: var(--accent);
+}
+.jam-status-pill.is-playing > span,
+.jam-cover-playing-label > span {
+  background: var(--accent);
+}
+.jam-code-badge {
+  min-height: 48px;
+  gap: 9px;
+  padding: 0 12px;
+  border-color: rgba(255, 255, 255, 0.13);
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+.jam-code-badge:hover {
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.08);
+}
+.jam-code-badge .jam-caption {
+  color: var(--text-2);
+}
+.jam-copy-label {
+  padding-left: 9px;
+  border-left: 1px solid rgba(255, 255, 255, 0.16);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+}
+.jam-menu-wrap {
+  position: relative;
+}
+.jam-menu-popover {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 8px);
+  right: 0;
+  width: max-content;
+  min-width: 210px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-menu);
+  background: var(--raised);
+  box-shadow: var(--shadow-popover);
+}
+.jam-room-layout {
+  display: grid;
+  grid-template-areas:
+    'members invite'
+    'cover queue'
+    'scrubber queue'
+    'transport queue'
+    'hint queue';
+  grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
+  align-content: start;
+  align-items: stretch;
+  gap: 0 24px;
+  padding-top: 18px;
+}
+.jam-members-strip {
+  grid-area: members;
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 60px;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  margin: 0;
+  padding: 6px 14px 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.035);
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.jam-members-strip:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.07);
+}
+.jam-members-strip:focus-visible,
+.jam-code-badge:focus-visible,
+.jam-secondary-control:focus-visible,
+.btn-play-jam-72:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.overlapping-avatars {
+  display: flex;
+  flex: none;
+  align-items: center;
+  padding-left: 5px;
+}
+.member-avatar-wrap {
+  position: relative;
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  margin-left: -5px;
+  flex: none;
+}
+.member-avatar-wrap > img,
+.avatar-fallback-40-border {
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--midnight);
+  border-radius: 50%;
+  object-fit: cover;
+}
+.avatar-fallback-40-border {
+  display: grid;
+  place-items: center;
+  background: var(--raised);
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+.member-avatar-wrap .crown-badge {
+  right: -3px;
+  bottom: -1px;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--midnight);
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.avatar-extra-count {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  margin-left: -5px;
+  place-items: center;
+  border: 2px solid var(--midnight);
+  border-radius: 50%;
+  background: var(--raised);
+  color: var(--text-2);
+  font-size: 10px;
+  font-weight: 600;
+}
+.members-count-label {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+  color: var(--text-2);
+  font-size: 11px;
+}
+.members-count-label strong {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+}
+.members-count-label > span {
+  color: var(--text-2);
+}
+.jam-cover-container {
+  grid-area: cover;
+  align-content: start;
+  gap: 18px;
+  margin: 24px 0 0;
+  padding: 16px 16px 0;
+}
+.jam-artwork-wrap {
+  position: relative;
+  width: min(100%, 340px);
+  aspect-ratio: 1;
+  margin: 0 auto;
+}
+.jam-cover-320 {
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  border-radius: 8px;
+  object-fit: cover;
+}
+.jam-cover-playing-label {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: var(--radius-pill);
+  background: rgba(0, 0, 0, 0.78);
+  color: var(--text);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+}
+.jam-cover-playing-label > span {
+  width: 6px;
+  height: 6px;
+}
+.jam-track-meta {
+  width: min(100%, 440px);
+  margin: 0 auto;
+  text-align: left;
+}
+.jam-now-playing-label,
+.jam-sidebar-kicker {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+}
+.jam-track-meta h2 {
+  overflow: hidden;
+  font: 700 clamp(24px, 3.4vw, 34px)/1.1 var(--font-display);
+  letter-spacing: -0.025em;
+  text-overflow: ellipsis;
+}
+.jam-track-meta p {
+  margin: 7px 0 0;
+  font-size: 14px;
+}
+.jam-scrubber-section {
+  grid-area: scrubber;
+  width: min(100%, 500px);
+  justify-self: center;
+  margin: 22px auto 0;
+  padding-inline: 16px;
+}
+.jam-scrubber-section .bar-scrubber {
+  display: flex;
+  min-height: 54px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 3px;
+  padding: 4px 0;
+  border: 0;
+  cursor: pointer;
+  touch-action: pan-y;
+  user-select: none;
+}
+.jam-scrubber-section .bar-scrubber:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 5px;
+  border-radius: 4px;
+}
+.jam-scrubber-section .bar-scrubber[aria-disabled='true'] {
+  cursor: not-allowed;
+}
+.jam-scrubber-section .scrubber-bar {
+  display: block;
+  min-width: 2px;
+  max-width: 6px;
+  flex: 1 1 0;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.24);
+}
+.jam-scrubber-section .scrubber-bar.bar-played {
+  background: var(--accent);
+}
+.jam-time-row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2px;
+  color: var(--text-2);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.lock-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 10px;
+  color: var(--text-2);
+  font-size: 11px;
+}
+.jam-transport-row {
+  grid-area: transport;
+  min-height: 88px;
+  gap: 30px;
+  margin: 8px auto 0;
+}
+.jam-secondary-control {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  transition:
+    color 120ms ease-out,
+    background 120ms ease-out;
+}
+.jam-secondary-control:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+.jam-secondary-control:disabled {
+  color: var(--text-3);
+  cursor: not-allowed;
+}
+.btn-play-jam-72 {
+  width: 66px;
+  height: 66px;
+  background: var(--accent);
+  color: var(--on-accent);
+  transition:
+    transform 90ms ease-out,
+    background 120ms ease-out;
+}
+.btn-play-jam-72:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+.btn-play-jam-72:active:not(:disabled) {
+  transform: scale(0.98);
+}
+.btn-play-jam-72:disabled {
+  background: var(--raised);
+  color: var(--text-3);
+  cursor: not-allowed;
+}
+.jam-local-playback-hint {
+  grid-area: hint;
+  align-self: center;
+  margin: 0 auto 8px;
+  color: var(--text-2);
+  font-size: 12px;
+  text-align: center;
+}
+.jam-invite-strip {
+  grid-area: invite;
+  width: 100%;
+  align-self: center;
+  margin: 0;
+  padding: 8px;
+}
+.jam-invite-strip .btn-secondary {
+  min-height: 44px;
+  justify-content: center;
+  border-color: rgba(255, 255, 255, 0.16);
+  background: transparent;
+}
+.jam-invite-strip .btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.jam-room-sidebar {
+  grid-area: queue;
+  align-self: stretch;
+  width: auto;
+  min-width: 0;
+  margin: 24px 0 0;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.16);
+}
+.queue-header {
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+.queue-header .jam-sidebar-kicker {
+  margin-bottom: 4px;
+  color: var(--text-2);
+}
+.queue-header h3 {
+  font: 700 23px/1.1 var(--font-display);
+}
+.jam-queue-count {
+  display: grid;
+  min-width: 28px;
+  height: 28px;
+  padding-inline: 7px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-pill);
+  color: var(--text-2);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.jam-add-songs-button {
+  width: 100%;
+  min-height: 44px;
+  justify-content: center;
+  margin: 14px 0 2px;
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.04);
+}
+.jam-add-songs-button:hover {
+  background: rgba(255, 255, 255, 0.09);
+}
+.jam-queue-list {
+  max-height: min(52vh, 500px);
+  overflow-y: auto;
+  border: 0;
+}
+.jam-queue-row {
+  min-height: 76px;
+  gap: 10px;
+  padding: 12px 0;
+  border-top-color: rgba(255, 255, 255, 0.09);
+}
+.jam-queue-index {
+  width: 20px;
+  flex: none;
+  color: var(--text-3);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.queue-cover {
+  width: 44px;
+  height: 44px;
+  border-radius: 5px;
+}
+.queue-item-info strong {
+  display: block;
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.queue-item-info p {
+  overflow: hidden;
+  margin-top: 3px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.queue-item-info > span {
+  display: block;
+  overflow: hidden;
+  margin-top: 4px;
+  color: var(--text-3);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.jam-queue-empty {
+  display: grid;
+  min-height: 150px;
+  align-content: center;
+  gap: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.jam-queue-empty p {
+  margin: 0;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+}
+.jam-queue-empty span {
+  max-width: 240px;
+  color: var(--text-2);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+@media (max-width: 760px) {
+  .jam-room-page:not(.flex-center) {
+    width: 100%;
+    min-height: calc(100dvh - 56px);
+    padding: 8px 16px max(24px, env(safe-area-inset-bottom));
+  }
+  .jam-top-row {
+    min-height: 64px;
+    gap: 8px;
+    padding-bottom: 8px;
+  }
+  .jam-header-actions {
+    gap: 7px;
+  }
+  .jam-status-pill {
+    min-height: 30px;
+    padding-inline: 9px;
+    font-size: 10px;
+  }
+  .jam-code-badge {
+    min-height: 42px;
+    gap: 6px;
+    padding-inline: 9px;
+  }
+  .jam-code-badge .jam-caption {
+    display: none;
+  }
+  .jam-code {
+    font-size: 12px;
+  }
+  .jam-copy-label {
+    padding-left: 7px;
+    font-size: 10px;
+  }
+  .jam-room-layout {
+    grid-template-areas:
+      'members'
+      'cover'
+      'scrubber'
+      'transport'
+      'hint'
+      'invite'
+      'queue';
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    padding-top: 12px;
+  }
+  .jam-members-strip {
+    min-height: 54px;
+    padding-left: 8px;
+  }
+  .jam-cover-container {
+    gap: 16px;
+    margin-top: 20px;
+    padding: 8px 4px 0;
+  }
+  .jam-artwork-wrap {
+    width: min(76vw, 330px);
+  }
+  .jam-track-meta {
+    max-width: 440px;
+    padding-inline: 4px;
+    text-align: center;
+  }
+  .jam-track-meta h2 {
+    font-size: clamp(24px, 7vw, 32px);
+  }
+  .jam-scrubber-section {
+    width: min(100%, 500px);
+    margin-top: 20px;
+    padding-inline: 4px;
+  }
+  .jam-transport-row {
+    min-height: 82px;
+    margin-top: 6px;
+  }
+  .jam-invite-strip {
+    padding: 4px 0;
+  }
+  .jam-room-sidebar {
+    margin-top: 20px;
+    padding: 16px;
+  }
+  .jam-queue-list {
+    max-height: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .jam-room-page:not(.flex-center) {
+    padding-inline: 12px;
+  }
+  .jam-top-leading {
+    gap: 8px;
+  }
+  .jam-room-heading strong {
+    font-size: 16px;
+  }
+  .jam-collapse-button {
+    width: 40px;
+    height: 40px;
+  }
+  .jam-header-actions {
+    gap: 5px;
+  }
+  .jam-status-pill {
+    gap: 5px;
+    padding-inline: 7px;
+    font-size: 9px;
+  }
+  .jam-status-pill > span {
+    width: 6px;
+    height: 6px;
+  }
+  .jam-code-badge {
+    min-height: 38px;
+    gap: 5px;
+    padding-inline: 7px;
+  }
+  .jam-copy-label {
+    padding-left: 5px;
+    font-size: 9px;
+  }
+}

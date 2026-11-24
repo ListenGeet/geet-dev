@@ -25,6 +25,11 @@ import { getRealtimeClient, retainRealtime, releaseRealtime } from '@/lib/realti
 import type { JamSnapshot, FriendItem } from '@geet/shared';
 import type { Track } from '@/components/player/types';
 
+function formatJamTime(seconds: number): string {
+  const safeSeconds = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
+  return `${Math.floor(safeSeconds / 60)}:${String(safeSeconds % 60).padStart(2, '0')}`;
+}
+
 export default function JamRoomPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: jamId } = use(params);
   const { me, api, status } = useMe();
@@ -537,235 +542,304 @@ export default function JamRoomPage({ params }: { params: Promise<{ id: string }
         </div>
       )}
 
-      {/* 1. Top row */}
+      {/* Room header */}
       <header className="jam-top-row">
-        <button
-          type="button"
-          className="btn-icon"
-          aria-label="Minimize jam"
-          onClick={() => router.push('/')}
-        >
-          <Icon icon={CaretDown} size={24} />
-        </button>
-
-        <div className="jam-code-badge" onClick={copyCode}>
-          <span className="jam-caption">JAM</span>
-          <span className="jam-code">{jam.code}</span>
-        </div>
-
-        <button
-          type="button"
-          className="btn-icon"
-          aria-label="Jam options"
-          onClick={() => setMenuOpen(!menuOpen)}
-        >
-          <Icon icon={DotsThreeVertical} size={22} />
-        </button>
-
-        {menuOpen && (
-          <div className="menu-popover" onClick={() => setMenuOpen(false)}>
-            {isHost && (
-              <button type="button" className="menu-item" onClick={handleToggleControls}>
-                Control mode: {jam.controls === 'host' ? 'Host only' : 'Everyone'}
-              </button>
-            )}
-            <button type="button" className="menu-item" onClick={handleLeaveJam}>
-              Leave jam
-            </button>
-            {isHost && (
-              <button type="button" className="menu-item danger" onClick={handleEndJam}>
-                End jam
-              </button>
-            )}
-          </div>
-        )}
-      </header>
-
-      {/* 2. Members row */}
-      <div className="jam-members-strip" onClick={() => setMembersSheetOpen(true)}>
-        <div className="overlapping-avatars">
-          {jam.members.slice(0, 5).map((m) => (
-            <div key={m.profileId} className="member-avatar-wrap">
-              {m.user.avatarUrl ? (
-                <img
-                  src={m.user.avatarUrl}
-                  alt=""
-                  className="avatar-40-border"
-                  width={40}
-                  height={40}
-                />
-              ) : (
-                <div className="avatar-fallback-40-border">
-                  {(m.user.displayName ?? m.user.username ?? 'M')[0]?.toUpperCase()}
-                </div>
-              )}
-              {m.isHost && (
-                <span className="crown-badge" aria-label="Host">
-                  <Icon icon={Crown} size={12} on />
-                </span>
-              )}
-            </div>
-          ))}
-          {jam.members.length > 5 && (
-            <div className="avatar-extra-count">+{jam.members.length - 5}</div>
-          )}
-        </div>
-        <span className="members-count-label">
-          {jam.members.length} member{jam.members.length === 1 ? '' : 's'}
-        </span>
-      </div>
-
-      {/* 3. Cover and Meta */}
-      <div className="jam-cover-container">
-        <img
-          src={currentSong?.coverUrl ?? '/illustrations/cover-fallback.svg'}
-          alt=""
-          className="jam-cover-320"
-          width={320}
-          height={320}
-        />
-        <div className="jam-track-meta">
-          <h2>{currentSong?.title ?? 'No song selected'}</h2>
-          <p>{currentSong?.artist ?? 'Tap Add songs to build the queue'}</p>
-        </div>
-      </div>
-
-      {/* 4. Bar scrubber */}
-      <div className="jam-scrubber-section">
-        <div className={`bar-scrubber ${!canControl ? 'scrubber-locked' : ''}`}>
-          {waveform.map((height, i) => {
-            const barRatio = i / 64;
-            const isPlayed = barRatio <= progressRatio;
-            return (
-              <div
-                key={i}
-                className={`scrubber-bar ${isPlayed ? 'bar-played' : 'bar-unplayed'}`}
-                style={{ height: `${Math.max(4, height)}px` }}
-                onClick={() => {
-                  if (canControl && totalSec > 0) {
-                    void handleSeek(barRatio * totalSec);
-                  }
-                }}
-              />
-            );
-          })}
-        </div>
-
-        {!canControl && (
-          <div className="lock-indicator">
-            <Icon icon={Lock} size={14} />
-            <span>Host controls playback</span>
-          </div>
-        )}
-      </div>
-
-      {/* 5. Transport Controls */}
-      <div className="jam-transport-row">
-        <button
-          type="button"
-          className="btn-icon"
-          aria-label="Previous"
-          disabled={!canControl}
-          style={{ opacity: canControl ? 1 : 0.4 }}
-          onClick={() => handleSeek(0)}
-        >
-          <Icon icon={SkipBack} size={28} />
-        </button>
-
-        <button
-          type="button"
-          className="btn-play-jam-72"
-          aria-label={
-            localNeedsPlayback
-              ? 'Play jam audio on this device'
-              : jamNeedsQueueRecovery
-                ? 'Start the next queued song'
-                : jam.isPlaying
-                  ? 'Pause'
-                  : 'Play'
-          }
-          disabled={!canControl && !localNeedsPlayback}
-          style={{ opacity: canControl || localNeedsPlayback ? 1 : 0.4 }}
-          onClick={handleTogglePlay}
-        >
-          <Icon
-            icon={jam.isPlaying && !localNeedsPlayback && !jamNeedsQueueRecovery ? Pause : Play}
-            size={32}
-            on
-          />
-        </button>
-
-        <button
-          type="button"
-          className="btn-icon"
-          aria-label="Next"
-          disabled={!canControl}
-          style={{ opacity: canControl ? 1 : 0.4 }}
-          onClick={handleSkipNext}
-        >
-          <Icon icon={SkipForward} size={28} />
-        </button>
-      </div>
-
-      {localNeedsPlayback && (
-        <p className="jam-local-playback-hint" role="status">
-          Tap play to hear the jam on this device.
-        </p>
-      )}
-
-      {/* 6. Invite Button */}
-      <div className="jam-invite-strip">
-        <button
-          type="button"
-          className="btn btn-secondary btn-block"
-          onClick={() => setInviteSheetOpen(true)}
-        >
-          <Icon icon={UserPlus} size={18} />
-          <span>Invite friends</span>
-        </button>
-      </div>
-
-      {/* 7. Up Next Queue */}
-      <section className="jam-queue-section">
-        <div className="queue-header flex-between">
-          <h3>Up next</h3>
+        <div className="jam-top-leading">
           <button
             type="button"
-            className="btn btn-secondary btn-xs"
-            onClick={() => setAddSongSheetOpen(true)}
+            className="btn-icon jam-collapse-button"
+            aria-label="Minimize jam"
+            onClick={() => router.push('/')}
           >
-            <Icon icon={Plus} size={14} />
-            <span>Add songs</span>
+            <Icon icon={CaretDown} size={22} />
+          </button>
+          <div className="jam-room-heading">
+            <span className="jam-caption">LISTEN TOGETHER</span>
+            <strong>Jam room</strong>
+          </div>
+        </div>
+
+        <div className="jam-header-actions">
+          <span className={`jam-status-pill ${jam.isPlaying ? 'is-playing' : ''}`}>
+            <span aria-hidden="true" />
+            {jamNeedsQueueRecovery ? 'Starting' : jam.isPlaying ? 'Playing' : 'Paused'}
+          </span>
+          <button type="button" className="jam-code-badge" onClick={copyCode}>
+            <span className="jam-caption">INVITE CODE</span>
+            <span className="jam-code">{jam.code}</span>
+            <span className="jam-copy-label">Copy</span>
+          </button>
+          <div className="jam-menu-wrap">
+            <button
+              type="button"
+              className="btn-icon"
+              aria-label="Jam options"
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen(!menuOpen)}
+            >
+              <Icon icon={DotsThreeVertical} size={22} />
+            </button>
+            {menuOpen && (
+              <div className="jam-menu-popover" onClick={() => setMenuOpen(false)}>
+                {isHost && (
+                  <button type="button" className="menu-item" onClick={handleToggleControls}>
+                    Control mode: {jam.controls === 'host' ? 'Host only' : 'Everyone'}
+                  </button>
+                )}
+                <button type="button" className="menu-item" onClick={handleLeaveJam}>
+                  Leave jam
+                </button>
+                {isHost && (
+                  <button type="button" className="menu-item danger" onClick={handleEndJam}>
+                    End jam
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <div className="jam-room-layout">
+        {/* 2. Members row */}
+        <button
+          type="button"
+          className="jam-members-strip"
+          aria-expanded={membersSheetOpen}
+          onClick={() => setMembersSheetOpen(true)}
+        >
+          <span className="overlapping-avatars" aria-hidden="true">
+            {jam.members.slice(0, 5).map((m) => (
+              <span key={m.profileId} className="member-avatar-wrap">
+                {m.user.avatarUrl ? (
+                  <img
+                    src={m.user.avatarUrl}
+                    alt=""
+                    className="avatar-40-border"
+                    width={40}
+                    height={40}
+                  />
+                ) : (
+                  <span className="avatar-fallback-40-border">
+                    {(m.user.displayName ?? m.user.username ?? 'M')[0]?.toUpperCase()}
+                  </span>
+                )}
+                {m.isHost && (
+                  <span className="crown-badge" aria-label="Host">
+                    <Icon icon={Crown} size={12} on />
+                  </span>
+                )}
+              </span>
+            ))}
+            {jam.members.length > 5 && (
+              <span className="avatar-extra-count">+{jam.members.length - 5}</span>
+            )}
+          </span>
+          <span className="members-count-label">
+            <strong>{jam.members.length} listening</strong>
+            <span>View members</span>
+          </span>
+        </button>
+
+        {/* 3. Cover and Meta */}
+        <div className="jam-cover-container">
+          <div className="jam-artwork-wrap">
+            <img
+              src={currentSong?.coverUrl ?? '/illustrations/cover-fallback.svg'}
+              alt=""
+              className="jam-cover-320"
+              width={320}
+              height={320}
+            />
+            {jam.isPlaying && currentSong && (
+              <span className="jam-cover-playing-label">
+                <span aria-hidden="true" />
+                PLAYING TOGETHER
+              </span>
+            )}
+          </div>
+          <div className="jam-track-meta">
+            <span className="jam-now-playing-label">NOW PLAYING</span>
+            <h2>{currentSong?.title ?? 'Choose a song for the room'}</h2>
+            <p>{currentSong?.artist ?? 'Add a song to the queue to get started.'}</p>
+          </div>
+        </div>
+
+        {/* 4. Bar scrubber */}
+        <div className="jam-scrubber-section">
+          <div
+            className={`bar-scrubber ${!canControl ? 'scrubber-locked' : ''}`}
+            role="slider"
+            aria-label="Song progress"
+            aria-disabled={!canControl || totalSec <= 0}
+            aria-valuemin={0}
+            aria-valuemax={Math.floor(totalSec)}
+            aria-valuenow={Math.min(Math.floor(currentSec), Math.floor(totalSec))}
+            aria-valuetext={`${formatJamTime(currentSec)} of ${formatJamTime(totalSec)}`}
+            tabIndex={canControl && totalSec > 0 ? 0 : -1}
+            onClick={(event) => {
+              if (!canControl || totalSec <= 0) return;
+              const bounds = event.currentTarget.getBoundingClientRect();
+              if (bounds.width <= 0) return;
+              const ratio = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
+              void handleSeek(ratio * totalSec);
+            }}
+            onKeyDown={(event) => {
+              if (!canControl || totalSec <= 0) return;
+              const step = event.shiftKey ? 10 : 5;
+              if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') {
+                event.preventDefault();
+                void handleSeek(Math.max(0, currentSec - step));
+              } else if (event.key === 'ArrowRight' || event.key === 'ArrowUp') {
+                event.preventDefault();
+                void handleSeek(Math.min(totalSec, currentSec + step));
+              } else if (event.key === 'Home') {
+                event.preventDefault();
+                void handleSeek(0);
+              } else if (event.key === 'End') {
+                event.preventDefault();
+                void handleSeek(totalSec);
+              }
+            }}
+          >
+            {waveform.map((height, i) => {
+              const barRatio = i / 64;
+              const isPlayed = barRatio <= progressRatio;
+              return (
+                <span
+                  key={i}
+                  className={`scrubber-bar ${isPlayed ? 'bar-played' : 'bar-unplayed'}`}
+                  style={{ height: `${Math.max(4, height)}px` }}
+                />
+              );
+            })}
+          </div>
+
+          <div className="jam-time-row" aria-hidden="true">
+            <span>{formatJamTime(currentSec)}</span>
+            <span>{formatJamTime(totalSec)}</span>
+          </div>
+
+          {!canControl && (
+            <div className="lock-indicator">
+              <Icon icon={Lock} size={14} />
+              <span>Playback controlled by the host</span>
+            </div>
+          )}
+        </div>
+
+        {/* 5. Transport Controls */}
+        <div className="jam-transport-row">
+          <button
+            type="button"
+            className="jam-secondary-control"
+            aria-label="Restart song"
+            disabled={!canControl || totalSec <= 0}
+            onClick={() => handleSeek(0)}
+          >
+            <Icon icon={SkipBack} size={22} />
+          </button>
+
+          <button
+            type="button"
+            className="btn-play-jam-72"
+            aria-label={
+              localNeedsPlayback
+                ? 'Play jam audio on this device'
+                : jamNeedsQueueRecovery
+                  ? 'Start the next queued song'
+                  : jam.isPlaying
+                    ? 'Pause'
+                    : 'Play'
+            }
+            disabled={!canControl && !localNeedsPlayback}
+            style={{ opacity: canControl || localNeedsPlayback ? 1 : 0.4 }}
+            onClick={handleTogglePlay}
+          >
+            <Icon
+              icon={jam.isPlaying && !localNeedsPlayback && !jamNeedsQueueRecovery ? Pause : Play}
+              size={32}
+              on
+            />
+          </button>
+
+          <button
+            type="button"
+            className="jam-secondary-control"
+            aria-label="Play next song"
+            disabled={!canControl || jam.queue.length === 0}
+            onClick={handleSkipNext}
+          >
+            <Icon icon={SkipForward} size={22} />
           </button>
         </div>
 
-        <div className="jam-queue-list">
-          {jam.queue.length === 0 ? (
-            <p className="empty-sub">Queue is empty. Add songs to keep the jam going!</p>
-          ) : (
-            jam.queue.map((item) => (
-              <div key={item.id} className="jam-queue-row">
-                <img
-                  src={item.track.coverUrl}
-                  alt=""
-                  className="queue-cover"
-                  width={40}
-                  height={40}
-                />
-                <div className="queue-item-info">
-                  <strong>{item.track.title}</strong>
-                  <p>
-                    {item.track.artist} ·{' '}
-                    <span className="text-2">
-                      added by {item.addedBy?.displayName ?? item.addedBy?.username ?? 'someone'}
-                    </span>
-                  </p>
-                </div>
-              </div>
-            ))
-          )}
+        {localNeedsPlayback && (
+          <p className="jam-local-playback-hint" role="status">
+            Tap play to hear the jam on this device.
+          </p>
+        )}
+
+        {/* 6. Invite Button */}
+        <div className="jam-invite-strip">
+          <button
+            type="button"
+            className="btn btn-secondary btn-block"
+            onClick={() => setInviteSheetOpen(true)}
+          >
+            <Icon icon={UserPlus} size={18} />
+            <span>Invite friends</span>
+          </button>
         </div>
-      </section>
+
+        {/* 7. Up Next Queue */}
+        <section className="jam-queue-section jam-room-sidebar" aria-label="Jam queue">
+          <div className="queue-header">
+            <div>
+              <span className="jam-sidebar-kicker">THE ROOM QUEUE</span>
+              <h3>Up next</h3>
+            </div>
+            <span className="jam-queue-count">{jam.queue.length}</span>
+          </div>
+          <button
+            type="button"
+            className="btn btn-secondary jam-add-songs-button"
+            onClick={() => setAddSongSheetOpen(true)}
+          >
+            <Icon icon={Plus} size={17} />
+            <span>Add songs</span>
+          </button>
+
+          <div className="jam-queue-list">
+            {jam.queue.length === 0 ? (
+              <div className="jam-queue-empty">
+                <p>The queue is clear.</p>
+                <span>Add a song and everyone can listen together.</span>
+              </div>
+            ) : (
+              jam.queue.map((item, index) => (
+                <div key={item.id} className="jam-queue-row">
+                  <span className="jam-queue-index">{String(index + 1).padStart(2, '0')}</span>
+                  <img
+                    src={item.track.coverUrl}
+                    alt=""
+                    className="queue-cover"
+                    width={44}
+                    height={44}
+                  />
+                  <div className="queue-item-info">
+                    <strong>{item.track.title}</strong>
+                    <p>{item.track.artist}</p>
+                    <span>
+                      Added by {item.addedBy?.displayName ?? item.addedBy?.username ?? 'a member'}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+      </div>
 
       {/* Members List Sheet */}
       {membersSheetOpen && (
