@@ -75,15 +75,19 @@ export default function JamHubPage() {
 
   return (
     <main className="page jam-hub-page">
-      <header className="page-header">
+      <header className="page-header jam-hub-heading">
+        <span className="social-page-eyebrow">LISTEN TOGETHER</span>
         <h1>Jams</h1>
-        <p className="page-sub">Listen to music together with friends in real time.</p>
+        <p className="page-sub">A shared room for the songs you love.</p>
       </header>
 
-      <div className="jam-hub-card">
-        <Icon icon={UsersThree} size={48} />
+      <div className="jam-hub-card jam-start-card">
+        <span className="jam-card-mark">
+          <Icon icon={UsersThree} size={25} />
+        </span>
+        <span className="jam-card-kicker">HOST A SESSION</span>
         <h2>Start a jam</h2>
-        <p>You&apos;ll be the host and can invite up to 7 friends to hear your music.</p>
+        <p>You’ll be the host. Invite up to seven friends and listen in sync.</p>
         <button
           type="button"
           className="btn btn-primary btn-block"
@@ -94,7 +98,8 @@ export default function JamHubPage() {
         </button>
       </div>
 
-      <div className="jam-hub-card">
+      <div className="jam-hub-card jam-join-card">
+        <span className="jam-card-kicker">HAVE AN INVITE?</span>
         <h2>Join with a code</h2>
         <p>Enter the 6-character code shared by your friend.</p>
 

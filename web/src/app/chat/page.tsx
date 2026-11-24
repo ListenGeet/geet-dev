@@ -111,15 +111,19 @@ export default function ChatListPage() {
 
   return (
     <main className="page chat-list-page">
-      <header className="page-header flex-between">
-        <h1>Messages</h1>
+      <header className="page-header flex-between social-page-heading">
+        <div>
+          <span className="social-page-eyebrow">YOUR CONVERSATIONS</span>
+          <h1>Messages</h1>
+          <p>Good songs are better when they’re shared.</p>
+        </div>
         <button
           type="button"
-          className="btn-icon"
-          aria-label="New message"
+          className="btn btn-primary chat-new-message"
           onClick={() => setFriendPickerOpen(true)}
         >
           <Icon icon={NotePencil} size={22} />
+          <span>New message</span>
         </button>
       </header>
 

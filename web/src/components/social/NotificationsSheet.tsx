@@ -40,6 +40,7 @@ export function NotificationsSheet({
   }, [status, isOpen]);
 
   if (!isOpen) return null;
+  const unreadCount = notifications.filter((item) => !item.readAt).length;
 
   const markAllRead = async () => {
     try {
@@ -86,10 +87,23 @@ export function NotificationsSheet({
         aria-label="Notifications"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="sheet-header">
-          <h2>Notifications</h2>
+        <div className="sheet-header notifications-header">
+          <div className="notifications-heading-copy">
+            <span className="social-page-eyebrow">YOUR INBOX</span>
+            <h2>Notifications</h2>
+            <p>
+              {unreadCount
+                ? `${unreadCount} new update${unreadCount === 1 ? '' : 's'}`
+                : 'You’re all caught up.'}
+            </p>
+          </div>
           <div className="sheet-header-actions">
-            <button type="button" className="btn-text" onClick={markAllRead}>
+            <button
+              type="button"
+              className="btn-text"
+              onClick={markAllRead}
+              disabled={!unreadCount}
+            >
               Mark all read
             </button>
             <button type="button" className="btn-icon" aria-label="Close" onClick={onClose}>
@@ -159,6 +173,14 @@ export function NotificationsSheet({
                         <strong>{actorName}</strong> invited you to a jam.
                       </p>
                     )}
+                    <span className="notification-time">
+                      {new Date(item.createdAt).toLocaleString([], {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                      })}
+                    </span>
                   </div>
 
                   <div className="notification-actions">

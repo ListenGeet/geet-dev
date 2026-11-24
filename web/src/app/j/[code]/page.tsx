@@ -41,12 +41,13 @@ export default function ShortJamLinkPage({ params }: { params: Promise<{ code: s
   }
 
   return (
-    <main className="page flex-center" style={{ minHeight: '60vh', textAlign: 'center' }}>
+    <main className="page phase5-join-page">
       {error ? (
-        <div>
-          <h2>We couldn&apos;t find that code</h2>
+        <div className="phase5-join-state phase5-join-error">
+          <span className="social-page-eyebrow">JAM INVITE</span>
+          <h1>That jam is unavailable</h1>
           <p className="hint-text">{error}</p>
-          <div className="action-row" style={{ marginTop: 20 }}>
+          <div className="action-row">
             <Link href="/jam" className="btn btn-primary">
               Start your own
             </Link>
@@ -56,7 +57,14 @@ export default function ShortJamLinkPage({ params }: { params: Promise<{ code: s
           </div>
         </div>
       ) : (
-        <p className="hint-text">Joining jam {code.toUpperCase()}…</p>
+        <div className="phase5-join-state">
+          <span className="social-page-eyebrow">YOU’RE INVITED</span>
+          <h1>Joining the jam</h1>
+          <p>
+            Room code <strong>{code.toUpperCase()}</strong>
+          </p>
+          <p className="hint-text">Getting the music ready…</p>
+        </div>
       )}
     </main>
   );

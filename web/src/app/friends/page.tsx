@@ -3,7 +3,15 @@
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { UserPlus, ChatCircleText, DotsThree, Play, UsersThree } from '@phosphor-icons/react';
+import {
+  UserPlus,
+  ChatCircleText,
+  DotsThree,
+  Play,
+  UsersThree,
+  MagnifyingGlass,
+  Copy,
+} from '@phosphor-icons/react';
 import { useMe } from '@/components/auth/MeProvider';
 import { usePlayer } from '@/components/player/PlayerProvider';
 import { Icon } from '@/components/Icon';
@@ -677,8 +685,12 @@ export default function FriendsPage() {
             aria-label="Add friend"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="sheet-header">
-              <h2>Add friend</h2>
+            <div className="add-friend-header">
+              <div>
+                <span className="friends-eyebrow">GROW YOUR CIRCLE</span>
+                <h2>Add a friend</h2>
+                <p>Find people by username or share your profile link.</p>
+              </div>
               <button
                 type="button"
                 className="btn-icon"
@@ -690,28 +702,42 @@ export default function FriendsPage() {
             </div>
 
             <div className="add-friend-field-wrap">
-              <label htmlFor="friend-username" className="field-label">
-                Username
-              </label>
-              <div className="input-with-prefix">
-                <span className="input-prefix">@</span>
+              <div className="add-friend-section-label">
+                <span className="add-friend-step">01</span>
+                <div>
+                  <strong>Search by username</strong>
+                  <span>Enter their Geet handle to find their profile.</span>
+                </div>
+              </div>
+              <label htmlFor="friend-username" className="add-friend-username-label">
+                <span aria-hidden="true" className="add-friend-at">
+                  @
+                </span>
                 <input
                   id="friend-username"
                   type="text"
                   className="field-input"
-                  placeholder="username"
+                  placeholder="Search a username"
                   value={searchUsername}
                   onChange={(e) => setSearchUsername(e.target.value)}
                   autoCapitalize="none"
                   autoCorrect="off"
+                  autoComplete="off"
+                  spellCheck={false}
+                  maxLength={20}
                 />
+                <Icon icon={MagnifyingGlass} size={19} />
+              </label>
+
+              <div className="add-friend-search-status" role="status" aria-live="polite">
+                {searchingUser && <span>Looking for that profile…</span>}
+                {!searchingUser && searchStatus && (
+                  <span className="text-danger">{searchStatus}</span>
+                )}
               </div>
 
-              {searchingUser && <p className="hint-text">Searching…</p>}
-              {searchStatus && <p className="hint-text text-danger">{searchStatus}</p>}
-
               {userPreview && (
-                <div className="user-preview-card">
+                <div className="user-preview-card add-friend-preview">
                   {userPreview.avatarUrl ? (
                     <img
                       src={userPreview.avatarUrl}
@@ -729,6 +755,7 @@ export default function FriendsPage() {
                     <strong>{userPreview.displayName ?? userPreview.username}</strong>
                     <p>@{userPreview.username}</p>
                   </div>
+                  <span className="add-friend-preview-ready">Profile found</span>
                 </div>
               )}
 
@@ -738,35 +765,69 @@ export default function FriendsPage() {
                 disabled={!userPreview || sendingRequest}
                 onClick={handleSendRequest}
               >
+                <Icon icon={UserPlus} size={18} />
                 {sendingRequest ? 'Sending…' : 'Send request'}
               </button>
             </div>
 
-            <hr className="hairline" />
+            <div className="add-friend-divider">
+              <span>OR SHARE YOUR PROFILE</span>
+            </div>
 
-            {/* Share link and QR code */}
-            <div className="share-link-block">
-              <h3>Share my link</h3>
-              <p className="share-url-text">{shareUrl}</p>
-              <button
-                type="button"
-                className="btn btn-secondary btn-block"
-                onClick={() => {
-                  if (navigator.share && shareUrl) {
-                    void navigator.share({ title: 'Geet', text: 'Add me on Geet', url: shareUrl });
-                  } else if (shareUrl) {
-                    void navigator.clipboard.writeText(shareUrl);
-                    window.dispatchEvent(new CustomEvent('geet:toast', { detail: 'Link copied.' }));
-                  }
-                }}
-              >
-                Copy share link
-              </button>
-
+            <div className="add-friend-share">
+              <div className="add-friend-share-copy">
+                <div className="add-friend-section-label">
+                  <span className="add-friend-step">02</span>
+                  <div>
+                    <strong>Share your profile</strong>
+                    <span>Anyone with your link can find you on Geet.</span>
+                  </div>
+                </div>
+                <div className="add-friend-link-box">
+                  <span>{shareUrl || 'Your profile link is not available yet.'}</span>
+                  <button
+                    type="button"
+                    className="btn-icon"
+                    aria-label="Copy profile link"
+                    disabled={!shareUrl}
+                    onClick={() => {
+                      void navigator.clipboard.writeText(shareUrl);
+                      window.dispatchEvent(
+                        new CustomEvent('geet:toast', { detail: 'Link copied.' }),
+                      );
+                    }}
+                  >
+                    <Icon icon={Copy} size={18} />
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-secondary add-friend-share-button"
+                  disabled={!shareUrl}
+                  onClick={() => {
+                    if (navigator.share && shareUrl) {
+                      void navigator.share({
+                        title: 'Geet',
+                        text: 'Add me on Geet',
+                        url: shareUrl,
+                      });
+                    } else if (shareUrl) {
+                      void navigator.clipboard.writeText(shareUrl);
+                      window.dispatchEvent(
+                        new CustomEvent('geet:toast', { detail: 'Link copied.' }),
+                      );
+                    }
+                  }}
+                >
+                  Share profile link
+                </button>
+              </div>
               {shareUrl && (
-                <div className="qr-container">
-                  <QRCode text={shareUrl} size={160} />
-                  <p className="qr-caption">Scan to add on Geet</p>
+                <div className="add-friend-qr">
+                  <div className="add-friend-qr-paper">
+                    <QRCode text={shareUrl} size={132} />
+                  </div>
+                  <span>Scan to find me</span>
                 </div>
               )}
             </div>
