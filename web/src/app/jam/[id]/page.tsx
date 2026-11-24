@@ -55,9 +55,11 @@ export default function JamRoomPage({ params }: { params: Promise<{ id: string }
   const syncEngineRef = useRef<JamSyncEngine | null>(null);
   const realtimeChannelRef = useRef<RealtimeChannel | null>(null);
   const syncingTrackRef = useRef<string | null>(null);
+  const recoveringJamQueueRef = useRef<string | null>(null);
 
   const isHost = jam?.hostId === me?.id;
   const canControl = isHost || jam?.controls === 'everyone';
+  const jamNeedsQueueRecovery = Boolean(jam?.isPlaying && !jam.trackId && jam.queue.length > 0);
   const localNeedsPlayback = Boolean(
     jam?.isPlaying && jam.trackId && (player.track?.id !== jam.trackId || !player.isPlaying),
   );
@@ -321,6 +323,40 @@ export default function JamRoomPage({ params }: { params: Promise<{ id: string }
       }
     });
   };
+
+  useEffect(() => {
+    const queuedSong = jam?.queue[0];
+    if (!isHost || !jam?.isPlaying || jam.trackId || !queuedSong) return;
+
+    const recoveryKey = `${jam.version}:${queuedSong.id}`;
+    if (recoveringJamQueueRef.current === recoveryKey) return;
+    recoveringJamQueueRef.current = recoveryKey;
+
+    startJamTrackLocally(queuedSong.track);
+    void (async () => {
+      try {
+        await api(`/api/jams/${jam.id}/queue/${queuedSong.id}`, { method: 'DELETE' });
+        const snapshot = await api<JamSnapshot>(`/api/jams/${jam.id}/state`, {
+          method: 'POST',
+          body: {
+            trackId: queuedSong.trackId,
+            positionMs: 0,
+            isPlaying: true,
+            expectedVersion: jam.version,
+          },
+        });
+        setJam(snapshot);
+      } catch {
+        try {
+          const snapshot = await api<JamSnapshot>(`/api/jams/${jam.id}`);
+          setJam(snapshot);
+        } catch {
+          // Keep the recovery action available if the room cannot be refreshed.
+          recoveringJamQueueRef.current = null;
+        }
+      }
+    })();
+  }, [isHost, jam, api, startJamTrackLocally]);
 
   const handleSeek = async (seconds: number) => {
     if (!canControl || !jam) return;
@@ -640,13 +676,23 @@ export default function JamRoomPage({ params }: { params: Promise<{ id: string }
           type="button"
           className="btn-play-jam-72"
           aria-label={
-            localNeedsPlayback ? 'Play jam audio on this device' : jam.isPlaying ? 'Pause' : 'Play'
+            localNeedsPlayback
+              ? 'Play jam audio on this device'
+              : jamNeedsQueueRecovery
+                ? 'Start the next queued song'
+                : jam.isPlaying
+                  ? 'Pause'
+                  : 'Play'
           }
           disabled={!canControl && !localNeedsPlayback}
           style={{ opacity: canControl || localNeedsPlayback ? 1 : 0.4 }}
           onClick={handleTogglePlay}
         >
-          <Icon icon={jam.isPlaying && !localNeedsPlayback ? Pause : Play} size={32} on />
+          <Icon
+            icon={jam.isPlaying && !localNeedsPlayback && !jamNeedsQueueRecovery ? Pause : Play}
+            size={32}
+            on
+          />
         </button>
 
         <button
