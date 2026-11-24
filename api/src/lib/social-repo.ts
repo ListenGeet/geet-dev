@@ -1093,7 +1093,10 @@ export async function getJamSnapshot(
 }
 
 export async function joinJam(code: string, profileId: string): Promise<JamSnapshot> {
-  const { data: jam, error } = await db().rpc('join_jam', { p_code: code.trim().toUpperCase() });
+  const { data: jam, error } = await db().rpc('join_jam_for_profile', {
+    p_code: code.trim().toUpperCase(),
+    p_profile: profileId,
+  });
   if (error) throw new Error(error.message);
 
   const snapshot = await getJamSnapshot(jam.id, profileId);

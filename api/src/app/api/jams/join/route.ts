@@ -26,6 +26,14 @@ export const POST = withUser(async (request, { profile }) => {
     if (msg.includes('jam ended')) {
       return fail(request, 'gone', 'This jam has ended.');
     }
-    return fail(request, 'not_found', 'We could not find that jam code.');
+    if (msg.includes('jam not found')) {
+      return fail(request, 'not_found', 'We could not find that jam code.');
+    }
+    console.error('[api] join jam failed:', msg);
+    return fail(
+      request,
+      'server_error',
+      'Could not join this jam right now. Try again in a moment.',
+    );
   }
 });

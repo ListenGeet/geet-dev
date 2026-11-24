@@ -99,7 +99,7 @@ Tests (`supabase/tests/*.sql`) must prove: a user cannot read another user's fav
 | `popular_tracks(language, days, limit)` | Top tracks by recent plays |
 | `search_tracks(q, language, limit, offset)` | Trigram plus prefix search over `search_text` |
 | `generate_daily_mix(profile)` | Builds Daily Mix 1 to 3 from favourite artists, history, and similar tracks (same artist, language, genre), de-duplicated, 25 songs each |
-| `join_jam(code)` | Checks capacity (8) and status; inserts the member |
+| `join_jam(code)` / `join_jam_for_profile(code, profile)` | Atomically checks capacity (8) and status, then inserts the member. The API calls the service-role-only profile variant after authenticating with Clerk. |
 | `remove_track(track_id, admin)` | The removal transaction (doc 09); the server then deletes the storage objects |
 | `friend_activity()` | Friends' "listening now", honoring each friend's privacy setting |
 
