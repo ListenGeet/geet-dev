@@ -3,6 +3,8 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
+import { DownloadSimple, Heart, ListBullets, Plus, SquaresFour } from '@phosphor-icons/react';
+import { Icon } from '@/components/Icon';
 import { EmptyState, TrackRows } from '@/components/catalogue/CatalogueComponents';
 import { useMe } from '@/components/auth/MeProvider';
 import { usePlayer } from '@/components/player/PlayerProvider';
@@ -159,14 +161,20 @@ export default function LibraryPage() {
           You’re offline. Saved songs are ready in Downloads.
         </div>
       ) : null}
-      <header className="page-heading">
-        <div>
+      <header className="library-intro">
+        <div className="library-intro-copy">
+          <span className="library-eyebrow">YOUR MUSIC, YOUR WAY</span>
           <h1>Your Library</h1>
-          <p>Playlists, favourites, downloads and listening history.</p>
+          <p>Everything you save, ready when you are.</p>
         </div>
         {tab === 'Playlists' ? (
-          <button className="btn btn-primary" disabled={busy} onClick={() => void createPlaylist()}>
-            Create playlist
+          <button
+            className="btn btn-primary library-create-button"
+            disabled={busy}
+            onClick={() => void createPlaylist()}
+          >
+            <Icon icon={Plus} size={18} />
+            <span>Create playlist</span>
           </button>
         ) : null}
       </header>
@@ -179,34 +187,47 @@ export default function LibraryPage() {
             onClick={() => setTab(item)}
           >
             {item}
+            <span className="library-tab-count">
+              {item === 'Playlists'
+                ? playlists.length
+                : item === 'Favourites'
+                  ? favourites.length
+                  : item === 'Downloads'
+                    ? downloads.length
+                    : history.length}
+            </span>
           </button>
         ))}
       </nav>
-      <div className="library-tools">
-        <label>
-          Sort{' '}
-          <select value={sort} onChange={(event) => setSort(event.target.value)}>
-            <option value="recent">Recently added</option>
-            <option value="name">Name</option>
-          </select>
-        </label>
-        <div aria-label="View">
-          <button
-            className="btn btn-secondary"
-            aria-pressed={view === 'list'}
-            onClick={() => setView('list')}
-          >
-            List
-          </button>{' '}
-          <button
-            className="btn btn-secondary"
-            aria-pressed={view === 'grid'}
-            onClick={() => setView('grid')}
-          >
-            Grid
-          </button>
+      {tab === 'Playlists' || tab === 'Downloads' ? (
+        <div className="library-tools">
+          <label className="library-sort-control">
+            <span>Sort by</span>
+            <select value={sort} onChange={(event) => setSort(event.target.value)}>
+              <option value="recent">Recently added</option>
+              <option value="name">Name</option>
+            </select>
+          </label>
+          <div className="library-view-toggle" aria-label="Collection layout">
+            <button
+              className="library-view-button"
+              aria-label="List view"
+              aria-pressed={view === 'list'}
+              onClick={() => setView('list')}
+            >
+              <Icon icon={ListBullets} size={19} />
+            </button>
+            <button
+              className="library-view-button"
+              aria-label="Grid view"
+              aria-pressed={view === 'grid'}
+              onClick={() => setView('grid')}
+            >
+              <Icon icon={SquaresFour} size={19} />
+            </button>
+          </div>
         </div>
-      </div>
+      ) : null}
       {!online && tab !== 'Downloads' ? (
         <EmptyState
           title="Needs a connection"
@@ -221,13 +242,64 @@ export default function LibraryPage() {
       {message ? <p role="status">{message}</p> : null}
       {online && tab === 'Playlists' ? (
         <section className="library-playlists">
-          <div className="track-list">
-            <button className="track-row" onClick={() => setTab('Favourites')}>
-              Favourites
+          <div className="library-collections" aria-label="Pinned collections">
+            <button
+              className="library-collection library-collection-favorites"
+              onClick={() => setTab('Favourites')}
+            >
+              <span className="library-collection-icon">
+                <Icon icon={Heart} size={22} on />
+              </span>
+              <span className="library-collection-copy">
+                <strong>Liked songs</strong>
+                <small>{favourites.length} saved tracks</small>
+              </span>
+              {favoriteTracks[0] ? (
+                <Image
+                  src={favoriteTracks[0].coverUrl ?? '/illustrations/cover-fallback.svg'}
+                  alt=""
+                  width={58}
+                  height={58}
+                  unoptimized
+                />
+              ) : (
+                <span className="library-collection-art library-art-heart">
+                  <Icon icon={Heart} size={25} on />
+                </span>
+              )}
             </button>
-            <button className="track-row" onClick={() => setTab('Downloads')}>
-              Downloads
+            <button
+              className="library-collection library-collection-downloads"
+              onClick={() => setTab('Downloads')}
+            >
+              <span className="library-collection-icon">
+                <Icon icon={DownloadSimple} size={22} />
+              </span>
+              <span className="library-collection-copy">
+                <strong>Downloads</strong>
+                <small>{downloads.length} on this device</small>
+              </span>
+              {downloads[0] ? (
+                <Image
+                  src={downloads[0].coverUrl ?? '/illustrations/cover-fallback.svg'}
+                  alt=""
+                  width={58}
+                  height={58}
+                  unoptimized
+                />
+              ) : (
+                <span className="library-collection-art library-art-download">
+                  <Icon icon={DownloadSimple} size={25} />
+                </span>
+              )}
             </button>
+          </div>
+          <div className="library-section-heading">
+            <div>
+              <span className="library-eyebrow">MADE BY YOU</span>
+              <h2>Your playlists</h2>
+            </div>
+            <span className="library-section-count">{playlists.length}</span>
           </div>
           {visiblePlaylists.length ? (
             <div className={`track-list ${view === 'grid' ? 'library-grid' : ''}`}>

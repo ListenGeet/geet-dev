@@ -9,4 +9,5 @@ _spec
 emails
 web/public
 .github
+.agents
 api/src/lib/email/templates.generated.ts

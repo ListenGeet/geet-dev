@@ -19,6 +19,7 @@ export default function FriendsPage() {
   const router = useRouter();
 
   const [activeTab, setActiveTab] = useState<'friends' | 'requests'>('friends');
+  const [friendQuery, setFriendQuery] = useState('');
   const [friends, setFriends] = useState<FriendItem[]>([]);
   const [incomingRequests, setIncomingRequests] = useState<FriendRequestItem[]>([]);
   const [outgoingRequests, setOutgoingRequests] = useState<FriendRequestItem[]>([]);
@@ -212,6 +213,12 @@ export default function FriendsPage() {
   };
 
   const listeningFriends = friends.filter((f) => f.listening !== null);
+  const normalizedFriendQuery = friendQuery.trim().toLocaleLowerCase();
+  const filteredFriends = friends.filter((friend) =>
+    `${friend.displayName ?? ''} ${friend.username ?? ''}`
+      .toLocaleLowerCase()
+      .includes(normalizedFriendQuery),
+  );
   const shareUrl =
     typeof window !== 'undefined' && me?.username
       ? `${window.location.origin}/u/${me.username}`
@@ -219,29 +226,52 @@ export default function FriendsPage() {
 
   return (
     <main className="page friends-page">
-      <header className="page-header flex-between">
-        <h1>Friends</h1>
+      <header className="friends-intro">
+        <div>
+          <span className="friends-eyebrow">BETTER TOGETHER</span>
+          <h1>Your people</h1>
+          <p>See what your friends are playing and share a song back.</p>
+        </div>
         <button
           type="button"
-          className="btn btn-secondary btn-sm"
+          className="btn btn-primary friends-add-button"
           onClick={() => setAddFriendOpen(true)}
         >
-          <Icon icon={UserPlus} size={18} />
+          <Icon icon={UserPlus} size={19} />
           <span>Add friend</span>
         </button>
       </header>
 
-      <div className="tab-strip">
+      <div className="friends-overview" aria-label="Friends summary" aria-live="polite">
+        <div>
+          <strong>{friends.length}</strong>
+          <span>Friends</span>
+        </div>
+        <span className="friends-overview-divider" />
+        <div>
+          <strong>{listeningFriends.length}</strong>
+          <span>Listening now</span>
+        </div>
+        <span className="friends-overview-divider" />
+        <div>
+          <strong>{incomingRequests.length}</strong>
+          <span>Requests</span>
+        </div>
+      </div>
+
+      <div className="friends-tabs" role="group" aria-label="Friends sections">
         <button
           type="button"
-          className={`tab-btn ${activeTab === 'friends' ? 'tab-btn-active' : ''}`}
+          aria-pressed={activeTab === 'friends'}
+          className={`friends-tab ${activeTab === 'friends' ? 'friends-tab-active' : ''}`}
           onClick={() => setActiveTab('friends')}
         >
-          Friends
+          Circle <span>{friends.length}</span>
         </button>
         <button
           type="button"
-          className={`tab-btn ${activeTab === 'requests' ? 'tab-btn-active' : ''}`}
+          aria-pressed={activeTab === 'requests'}
+          className={`friends-tab ${activeTab === 'requests' ? 'friends-tab-active' : ''}`}
           onClick={() => setActiveTab('requests')}
         >
           Requests
@@ -256,7 +286,13 @@ export default function FriendsPage() {
           {/* Listening now horizontal row */}
           {listeningFriends.length > 0 && (
             <div className="listening-now-section">
-              <h2>Listening now</h2>
+              <div className="friends-section-title">
+                <div>
+                  <span className="friends-eyebrow">RIGHT NOW</span>
+                  <h2>On repeat</h2>
+                </div>
+                <span className="friends-live-count">{listeningFriends.length} listening</span>
+              </div>
               <div className="listening-now-scroll">
                 {listeningFriends.map((f) => (
                   <button
@@ -329,61 +365,81 @@ export default function FriendsPage() {
               </div>
             </div>
           ) : (
-            <div className="friend-list">
-              {friends.map((f) => {
-                const name = f.displayName ?? f.username ?? 'Friend';
-                return (
-                  <div key={f.id} className="friend-row">
-                    <button
-                      type="button"
-                      className="friend-row-main"
-                      onClick={() => setSelectedFriend(f)}
-                    >
-                      {f.avatarUrl ? (
-                        <img
-                          src={f.avatarUrl}
-                          alt=""
-                          className="avatar-40"
-                          width={40}
-                          height={40}
-                        />
-                      ) : (
-                        <div className="avatar-fallback-40">{name[0]?.toUpperCase()}</div>
-                      )}
-                      <div className="friend-row-info">
-                        <strong>{name}</strong>
-                        {f.listening ? (
-                          <span className="friend-status active">
-                            <Equalizer />
-                            Listening to {f.listening.trackTitle}
-                          </span>
-                        ) : f.username ? (
-                          <span className="friend-username">@{f.username}</span>
-                        ) : null}
-                      </div>
-                    </button>
+            <div className="friend-list-wrap">
+              <div className="friends-list-heading">
+                <div>
+                  <span className="friends-eyebrow">YOUR CIRCLE</span>
+                  <h2>Friends</h2>
+                </div>
+                <label className="friend-search">
+                  <span className="sr-only">Search friends</span>
+                  <input
+                    value={friendQuery}
+                    onChange={(event) => setFriendQuery(event.target.value)}
+                    placeholder="Find a friend"
+                  />
+                </label>
+              </div>
+              <div className="friend-list">
+                {filteredFriends.length === 0 ? (
+                  <p className="friend-search-empty">No friends match “{friendQuery}”.</p>
+                ) : (
+                  filteredFriends.map((f) => {
+                    const name = f.displayName ?? f.username ?? 'Friend';
+                    return (
+                      <div key={f.id} className="friend-row">
+                        <button
+                          type="button"
+                          className="friend-row-main"
+                          onClick={() => setSelectedFriend(f)}
+                        >
+                          {f.avatarUrl ? (
+                            <img
+                              src={f.avatarUrl}
+                              alt=""
+                              className="avatar-40"
+                              width={40}
+                              height={40}
+                            />
+                          ) : (
+                            <div className="avatar-fallback-40">{name[0]?.toUpperCase()}</div>
+                          )}
+                          <div className="friend-row-info">
+                            <strong>{name}</strong>
+                            {f.listening ? (
+                              <span className="friend-status active">
+                                <Equalizer />
+                                Listening to {f.listening.trackTitle}
+                              </span>
+                            ) : f.username ? (
+                              <span className="friend-username">@{f.username}</span>
+                            ) : null}
+                          </div>
+                        </button>
 
-                    <div className="friend-row-actions">
-                      <button
-                        type="button"
-                        className="btn-icon"
-                        aria-label={`Message ${name}`}
-                        onClick={() => openChatWithFriend(f.id)}
-                      >
-                        <Icon icon={ChatCircleText} size={20} />
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-icon"
-                        aria-label={`More options for ${name}`}
-                        onClick={() => setSelectedFriend(f)}
-                      >
-                        <Icon icon={DotsThree} size={20} />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+                        <div className="friend-row-actions">
+                          <button
+                            type="button"
+                            className="btn-icon"
+                            aria-label={`Message ${name}`}
+                            onClick={() => openChatWithFriend(f.id)}
+                          >
+                            <Icon icon={ChatCircleText} size={20} />
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-icon"
+                            aria-label={`More options for ${name}`}
+                            onClick={() => setSelectedFriend(f)}
+                          >
+                            <Icon icon={DotsThree} size={20} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
           )}
         </section>
@@ -391,7 +447,13 @@ export default function FriendsPage() {
         /* Requests tab */
         <section className="requests-content">
           <div className="requests-group">
-            <h2>Incoming</h2>
+            <div className="friends-section-title">
+              <div>
+                <span className="friends-eyebrow">YOUR INBOX</span>
+                <h2>Incoming</h2>
+              </div>
+              <span className="friends-live-count">{incomingRequests.length} pending</span>
+            </div>
             {incomingRequests.length === 0 ? (
               <p className="empty-sub">No requests right now.</p>
             ) : (
@@ -438,7 +500,13 @@ export default function FriendsPage() {
 
           {outgoingRequests.length > 0 && (
             <div className="requests-group">
-              <h2>Sent</h2>
+              <div className="friends-section-title">
+                <div>
+                  <span className="friends-eyebrow">WAITING ON</span>
+                  <h2>Sent</h2>
+                </div>
+                <span className="friends-live-count">{outgoingRequests.length} pending</span>
+              </div>
               {outgoingRequests.map((r) => {
                 const name = r.user.displayName ?? r.user.username ?? 'User';
                 return (
