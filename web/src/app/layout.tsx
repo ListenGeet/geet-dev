@@ -10,6 +10,7 @@ import { LocaleProvider } from '@/lib/locale';
 import { isDevSite } from '@/lib/site';
 import { inter, notoDevanagari, notoGurmukhi, outfit } from './fonts';
 import '../styles/globals.css';
+import '../styles/admin.css';
 
 const appUrl = process.env.NEXT_PUBLIC_APP_URL;
 const dev = isDevSite(appUrl);

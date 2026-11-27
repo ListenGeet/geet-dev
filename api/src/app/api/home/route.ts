@@ -6,6 +6,7 @@ import { authenticate } from '@/lib/auth';
 import { loadOrCreateProfile } from '@/lib/me';
 import { db } from '@/lib/db';
 import { toTrackDto, type TrackRow } from '@/lib/catalogue';
+import { storage } from '@/lib/storage';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +21,41 @@ export async function GET(request: Request) {
       popularArtistCards(language ? [language] : [], 12),
       authenticate(request),
     ]);
+    const now = new Date().toISOString();
+    const { data: promoRows, error: promoError } = await db()
+      .from('promos')
+      .select('id,kicker,title,button_label,image_path,link,starts_at,ends_at,sort')
+      .eq('active', true)
+      .or(`starts_at.is.null,starts_at.lte.${now}`)
+      .or(`ends_at.is.null,ends_at.gt.${now}`)
+      .order('sort', { ascending: true })
+      .limit(10);
+    if (promoError) throw new Error(`home promos: ${promoError.message}`);
+    const promoLinks = await Promise.all(
+      (promoRows ?? []).flatMap((row) => {
+        if (typeof row.image_path !== 'string' || !row.image_path.startsWith('promos/')) return [];
+        const link =
+          typeof row.link === 'string' &&
+          (/^\/(?!\/)[^\\\s]*$/.test(row.link) || /^https:\/\/[^\s]+$/i.test(row.link))
+            ? row.link
+            : '';
+        if (!link) return [];
+        return [
+          storage()
+            .signDownload(row.image_path, 259200)
+            .then((imageUrl) => ({
+              id: row.id as string,
+              kicker: typeof row.kicker === 'string' ? row.kicker : 'FEATURED',
+              title: row.title as string,
+              buttonLabel: typeof row.button_label === 'string' ? row.button_label : 'Listen',
+              imageUrl,
+              link,
+            }))
+            .catch(() => null),
+        ];
+      }),
+    );
+    const promos = promoLinks.filter((promo): promo is NonNullable<typeof promo> => promo !== null);
     let personalized = false;
     let jumpBack: ReturnType<typeof toTrackDto>[] = [];
     let dailyMixes: { id: string; name: string; tracks: ReturnType<typeof toTrackDto>[] }[] = [];
@@ -103,7 +139,7 @@ export async function GET(request: Request) {
       newTracks,
       popular,
       artists,
-      promos: [],
+      promos,
       personalized,
       jumpBack,
       dailyMixes,

@@ -16,6 +16,7 @@ const state = vi.hoisted(() => ({
   filesError: null as { message: string } | null,
   blocked: null as Response | null,
   lookupTables: [] as string[],
+  egressRows: [] as { bytes: number }[],
 }));
 
 vi.mock('next/server', () => ({
@@ -31,12 +32,19 @@ vi.mock('@/lib/db', () => ({
   db: () => ({
     from: (table: string) => {
       state.lookupTables.push(table);
-      const result = table === 'tracks' ? state.track : state.files;
+      const result =
+        table === 'tracks'
+          ? state.track
+          : table === 'egress_daily'
+            ? state.egressRows
+            : state.files;
       const error = table === 'tracks' ? state.trackError : state.filesError;
       const query = {
         select: () => query,
         eq: () => query,
         in: () => query,
+        gte: () => query,
+        limit: () => query,
         maybeSingle: async () => ({ data: result, error }),
         then: (resolve: (value: unknown) => unknown) =>
           Promise.resolve({ data: result, error }).then(resolve),
@@ -57,6 +65,7 @@ const profile = { id: 'profile-id' };
 beforeEach(() => {
   state.afterCallbacks.length = 0;
   state.lookupTables.length = 0;
+  state.egressRows = [];
   state.authenticate.mockReset().mockResolvedValue(null);
   state.limited.mockReset().mockResolvedValue(null);
   state.loadProfile.mockReset().mockResolvedValue(profile);
@@ -97,6 +106,15 @@ describe('GET /api/tracks/{id}/play', () => {
     expect(await response.json()).toMatchObject({ preview: false });
     expect(state.loadProfile).toHaveBeenCalledWith('clerk-user');
     expect(state.signDownload).toHaveBeenCalledWith('tracks/full.m4a', 7200);
+  });
+
+  it('limits full downloads to previews after the monthly egress cap', async () => {
+    state.authenticate.mockResolvedValue({ sub: 'clerk-user' });
+    state.egressRows = [{ bytes: 5 * 1024 ** 3 }];
+    const response = await GET(call(), params);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ preview: true, egressLimited: true });
+    expect(state.signDownload).toHaveBeenCalledWith('tracks/preview.m4a', 7200);
   });
 
   it('never gives guests a full file, even if there is no preview', async () => {

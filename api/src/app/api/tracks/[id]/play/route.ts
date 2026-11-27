@@ -35,7 +35,27 @@ export async function GET(request: Request, { params }: Params) {
     if (fileError) throw new Error(`play file: ${fileError.message}`);
     if (!track || track.status !== 'ready')
       return fail(request, 'not_found', 'That song is not available.');
-    const kind = profile ? 'full' : 'preview';
+    let kind: 'full' | 'preview' = profile ? 'full' : 'preview';
+    let egressLimited = false;
+    if (profile) {
+      const start = new Date();
+      start.setUTCDate(1);
+      start.setUTCHours(0, 0, 0, 0);
+      const { data: usage, error: usageError } = await db()
+        .from('egress_daily')
+        .select('bytes')
+        .gte('day', start.toISOString().slice(0, 10))
+        .limit(100);
+      if (usageError) throw new Error(`egress cap check: ${usageError.message}`);
+      const used = (usage ?? []).reduce((sum, row) => sum + Number(row.bytes ?? 0), 0);
+      const cap =
+        Number(process.env.EGRESS_CAP_GB ?? (process.env.STORAGE_PROVIDER === 'b2' ? 30 : 5)) *
+        1024 ** 3;
+      if (used >= cap) {
+        kind = 'preview';
+        egressLimited = true;
+      }
+    }
     const file = files?.find((candidate) => candidate.kind === kind);
     if (!file) return fail(request, 'not_found', 'That song is not available.');
     const url = await storage().signDownload(file.path, 7200);
@@ -63,6 +83,7 @@ export async function GET(request: Request, { params }: Params) {
       url,
       expiresAt: new Date(Date.now() + 7_200_000).toISOString(),
       preview: kind === 'preview',
+      ...(egressLimited ? { egressLimited: true } : {}),
     });
   } catch (error) {
     console.error('[api] play error:', error instanceof Error ? error.message : 'unknown');

@@ -47,8 +47,15 @@ export const apiEnv: EnvRule[] = [
   { name: 'RESEND_API_KEY', minLength: 8 },
   { name: 'EMAIL_FROM_SECURITY', check: emailFrom },
   { name: 'EMAIL_FROM_HELLO', check: emailFrom },
+  { name: 'EMAIL_FROM_MARKETING', check: emailFrom },
+  { name: 'EMAIL_FROM_COPYRIGHT', check: emailFrom },
+  { name: 'EMAIL_FROM_ALERTS', check: emailFrom },
   { name: 'EMAIL_REPLY_TO_SUPPORT' },
   { name: 'ADMIN_EMAILS' },
+  { name: 'AI_API_KEY', minLength: 8 },
+  { name: 'AI_MODEL' },
+  { name: 'AI_MODEL_FALLBACK' },
+  { name: 'MARKETING_POSTAL_ADDRESS' },
 ];
 
 /** Returns one message per problem. Never includes the value itself. */

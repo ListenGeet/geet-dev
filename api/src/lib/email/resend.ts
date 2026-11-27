@@ -5,6 +5,7 @@ export interface OutgoingEmail {
   html: string;
   text: string;
   replyTo?: string;
+  headers?: Record<string, string>;
   idempotencyKey: string;
 }
 
@@ -41,6 +42,7 @@ export async function sendViaResend(
       html: email.html,
       text: email.text,
       ...(email.replyTo ? { reply_to: email.replyTo } : {}),
+      ...(email.headers ? { headers: email.headers } : {}),
     }),
   });
   const body = (await res.json().catch(() => ({}))) as { id?: string; name?: string };

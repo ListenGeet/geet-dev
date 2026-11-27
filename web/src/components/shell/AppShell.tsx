@@ -499,6 +499,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     pathname.startsWith('/sign-in') ||
     pathname.startsWith('/sign-up') ||
     pathname === '/onboarding';
+  const adminPage = pathname.startsWith('/admin');
   const title = pageTitle(pathname);
   const showFooter =
     pathname === '/' ||
@@ -507,14 +508,14 @@ export function AppShell({ children }: { children: ReactNode }) {
     ['/terms', '/privacy', '/copyright'].includes(pathname);
 
   useEffect(() => {
-    if (status !== 'ready') return;
+    if (status !== 'ready' || adminPage) return;
     void api<{ unreadCount: number }>('/api/notifications')
       .then((d) => setUnreadNotifications(d.unreadCount ?? 0))
       .catch(() => undefined);
-  }, [status, api]);
+  }, [adminPage, status, api]);
 
   useEffect(() => {
-    if (status !== 'ready') return;
+    if (status !== 'ready' || adminPage) return;
     const refreshSocialUnread = () => {
       void Promise.all([
         api<{ items: { unreadCount: number }[] }>('/api/conversations'),
@@ -530,7 +531,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     refreshSocialUnread();
     window.addEventListener('geet:refresh-social-unread', refresh);
     return () => window.removeEventListener('geet:refresh-social-unread', refresh);
-  }, [status, api]);
+  }, [adminPage, status, api]);
 
   useEffect(() => {
     setOffline(!navigator.onLine);
@@ -569,6 +570,19 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, []);
 
   if (bare) return <>{children}</>;
+  if (adminPage)
+    return (
+      <div className="admin-app">
+        <header className="admin-shell-header">
+          <div>
+            <img src="/brand/geet-wordmark-white-bars.png" alt="Geet" width={62} height={20} />
+            <span>Admin</span>
+          </div>
+          <Link href="/">Back to Geet</Link>
+        </header>
+        {children}
+      </div>
+    );
   return (
     <div className={`app-shell ${scrolled ? 'has-scrolled' : ''}`}>
       <header className="phone-header">

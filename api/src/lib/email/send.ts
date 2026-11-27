@@ -58,6 +58,8 @@ interface Common {
   profileId: string | null;
   idempotencyKey: string;
   priority?: number;
+  campaignId?: string | null;
+  headers?: Record<string, string>;
 }
 
 interface Prepared {
@@ -79,6 +81,7 @@ async function deliver(common: Common, mail: Prepared): Promise<SendOutcome> {
     profileId: common.profileId,
     priority: common.priority ?? 5,
     idempotencyKey: common.idempotencyKey,
+    campaignId: common.campaignId,
   });
   if (job.state === 'sent' || job.state === 'cancelled') return 'duplicate';
 
@@ -94,16 +97,17 @@ async function deliver(common: Common, mail: Prepared): Promise<SendOutcome> {
     return 'dropped';
   }
 
-  const outgoing: OutgoingEmail = {
-    from: fromFor(mail.sender),
-    to: common.to,
-    subject: delivery.subjectPrefix + mail.subject,
-    html: mail.html,
-    text: mail.text,
-    replyTo: replyToFor(mail.sender),
-    idempotencyKey: common.idempotencyKey,
-  };
   try {
+    const outgoing: OutgoingEmail = {
+      from: fromFor(mail.sender),
+      to: common.to,
+      subject: delivery.subjectPrefix + mail.subject,
+      html: mail.html,
+      text: mail.text,
+      replyTo: replyToFor(mail.sender),
+      idempotencyKey: common.idempotencyKey,
+      headers: common.headers,
+    };
     const { id } = await sendViaResend(outgoing);
     await repo.finishEmailJob(job.id, 'sent', job.attempts + 1, {
       ...log,

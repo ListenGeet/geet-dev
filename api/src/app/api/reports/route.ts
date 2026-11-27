@@ -2,6 +2,8 @@ import { db } from '@/lib/db';
 import { readJson, fail, ok, clientIp } from '@/lib/http';
 import { limited, serverError } from '@/lib/route';
 import { preflight } from '@/lib/cors';
+import { sendTemplate } from '@/lib/email/send';
+import { trackById } from '@/lib/catalogue';
 
 export const dynamic = 'force-dynamic';
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -59,7 +61,7 @@ export async function POST(request: Request) {
         statement: true,
       };
     }
-    const { error } = await db()
+    const { data: created, error } = await db()
       .from('reports')
       .insert({
         track_id: body.trackId ?? null,
@@ -68,9 +70,44 @@ export async function POST(request: Request) {
         note: typeof body.note === 'string' ? body.note.trim() : null,
         reporter_email: claimant?.email ?? null,
         claimant,
-      });
+      })
+      .select('id')
+      .single();
     if (error) throw new Error(`report create: ${error.message}`);
-    return ok(request, { submitted: true }, 201);
+    if (claimant && created) {
+      try {
+        const track = typeof body.trackId === 'string' ? await trackById(body.trackId) : null;
+        await sendTemplate(
+          {
+            kind: 'copyright',
+            to: claimant.email,
+            profileId: null,
+            idempotencyKey: `copyright-report-${created.id}`,
+            priority: 3,
+          },
+          'copyright-received',
+          {
+            reference: created.id.slice(0, 8).toUpperCase(),
+            track_title: track?.title ?? 'the song you reported',
+            track_artist: track?.artist ?? 'Geet',
+            date: new Intl.DateTimeFormat('en-IN', {
+              dateStyle: 'medium',
+              timeZone: 'Asia/Kolkata',
+            }).format(new Date()),
+            days: String(
+              Math.max(1, Math.min(30, Number(process.env.COPYRIGHT_RESPONSE_DAYS || 3))),
+            ),
+            email: claimant.email,
+          },
+        );
+      } catch (emailError) {
+        console.error(
+          '[reports] copyright acknowledgement queued or failed:',
+          emailError instanceof Error ? emailError.message : 'unknown',
+        );
+      }
+    }
+    return ok(request, { submitted: true, reference: created?.id.slice(0, 8).toUpperCase() }, 201);
   } catch (error) {
     return serverError(request, error);
   }

@@ -15,11 +15,20 @@ import {
 import type { Track } from '@/components/player/types';
 import { callApi } from '@/lib/api';
 import { useLocale } from '@/lib/locale';
+import PromoBanner from '@/components/catalogue/PromoBanner';
 
 export type HomeData = {
   newTracks: Track[];
   popular: Track[];
   artists: { artist: string; artistKey: string; plays: number }[];
+  promos?: {
+    id: string;
+    kicker: string;
+    title: string;
+    buttonLabel: string;
+    imageUrl: string;
+    link: string;
+  }[];
   personalized?: boolean;
   jumpBack?: Track[];
   dailyMixes?: { id: string; name: string; tracks: Track[] }[];
@@ -101,6 +110,7 @@ export default function HomePage({ initialData }: { initialData: HomeData | null
           </button>
         ))}
       </div>
+      {!loading && !error && data?.promos?.length ? <PromoBanner promos={data.promos} /> : null}
       {loading ? (
         <>
           <Section title={t('newOnGeet')}>

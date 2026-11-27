@@ -236,7 +236,7 @@ export async function isSuppressed(id: string): Promise<boolean> {
 
 export interface JobRow {
   id: string;
-  state: 'queued' | 'sent' | 'failed' | 'cancelled';
+  state: 'queued' | 'sending' | 'sent' | 'failed' | 'cancelled';
   attempts: number;
 }
 
@@ -247,17 +247,21 @@ export async function upsertEmailJob(job: {
   profileId: string | null;
   priority: number;
   idempotencyKey: string;
+  campaignId?: string | null;
 }): Promise<JobRow> {
-  const insert = await db().from('email_jobs').upsert(
-    {
-      kind: job.kind,
-      template: job.template,
-      profile_id: job.profileId,
-      priority: job.priority,
-      idempotency_key: job.idempotencyKey,
-    },
-    { onConflict: 'idempotency_key', ignoreDuplicates: true },
-  );
+  const insert = await db()
+    .from('email_jobs')
+    .upsert(
+      {
+        kind: job.kind,
+        template: job.template,
+        profile_id: job.profileId,
+        priority: job.priority,
+        idempotency_key: job.idempotencyKey,
+        ...(job.campaignId ? { campaign_id: job.campaignId } : {}),
+      },
+      { onConflict: 'idempotency_key', ignoreDuplicates: true },
+    );
   if (insert.error) throw new Error(`email job insert: ${insert.error.message}`);
   const row = check<JobRow>(
     await db()

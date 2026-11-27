@@ -11,8 +11,15 @@ const fullApiEnv = {
   RESEND_API_KEY: 're_0123456789',
   EMAIL_FROM_SECURITY: 'Geet Security <security@a.example.com>',
   EMAIL_FROM_HELLO: 'Geet <hello@a.example.com>',
+  EMAIL_FROM_MARKETING: 'Geet News <marketing@a.example.com>',
+  EMAIL_FROM_COPYRIGHT: 'Geet Copyright <copyright@a.example.com>',
+  EMAIL_FROM_ALERTS: 'Geet Alerts <alerts@a.example.com>',
   EMAIL_REPLY_TO_SUPPORT: 'support@a.example.com',
   ADMIN_EMAILS: 'me@a.example.com',
+  AI_API_KEY: 'nvidia-dummy-key',
+  AI_MODEL: 'nvidia/example-model',
+  AI_MODEL_FALLBACK: 'example/fallback-model',
+  MARKETING_POSTAL_ADDRESS: 'Example business address, India',
 };
 
 describe('validateEnv', () => {
